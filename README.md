@@ -18,7 +18,7 @@ Like static public methods, static public fields take a common idiom which was p
 
 Define an own property on the constructor which is set to the value of the initializer expression. The initializer is evaluated in a scope where the binding of the class is available--unlike in computed property names, the class can be referred to from inside initializers without leading to a ReferenceError.
 
-Alternate semantics are discussed in ["Initializing fields on subclasses"](https://github.com/tc39/proposal-static-class-features#initializing-fields-on-subclasses). However, they are not proposed here, for reasons detailed in that section. These semantics are justified in more detail in ["Static field initialization"](https://github.com/tc39/proposal-static-class-features#static-field-initialization).
+Alternate semantics are discussed in ["Initializing fields on subclasses"](#initializing-fields-on-subclasses). However, they are not proposed here, for reasons detailed in that section. These semantics are justified in more detail in ["Static field initialization"](#static-field-initialization).
 
 ### Use case
 
@@ -133,19 +133,41 @@ Justin Ridgewell [raised a concern](https://github.com/tc39/proposal-class-field
 - Type systems which want to be slightly more accepting could trigger an error on any class with a class which is subclassed and has public method which uses a private method or field without the class's name being the receiver. In the case of TypeScript, [this is already not polymorphic](https://github.com/Microsoft/TypeScript/issues/5863) so it would already flag instances of `this.#method` for a private static method call within a public static method.
 - Beginners can just learn the rule (helped by linters, type systems and error messages) to refer to the class when calling static private methods. Advanced users can learn the simple mental model that corresponds to the specification: private things are represented by a WeakMap, and public things by ordinary properties. When it's by the instance, the WeakMap has a key for each instance; when it's static, the WeakMap has a single key, for the constructor.
 - A guaranteed TypeError when the code runs on the subclass is a relatively easy to debug failure mode. This is how JS responds, at a high level, when you access an undefined variable as well, or read a property on undefined. A silent other interpretation would be the real footgun.
-- TC39 has worked hard on other guaranteed exceptions, such as the "temporal dead zone"--a ReferenceError 
+- TC39 has worked hard on other guaranteed exceptions, such as the "temporal dead zone"--a ReferenceError from reading `let`- or `const`-declared variables whose declaration has not yet been reached. Here, a runtime error was considered very useful for programmers and a way of preventing a "footgun". In this case, we're getting such a guaranteed error.
+
+## Programmer mental model
+
+These proposed semantics are designed to be learnable by beginners as well as understandable at a deep level by experts, without any mismatch. The semantics here aren't just "something that works well in the spec", but rather a design which remains intuitive through multiple lenses.
+
+### Beginner, simplified semantics
+
+To make something inaccessible from outside the class, put a `#` at the beginning of the name. When a field or method has `static`, that means it is on the class, not on instances. To access static class elements, use the syntax `ClassName.element` or `ClassName.#element`, depending on whether the name contains a `#`. Note that the latter case is available only inside the class declaration. If you make a mistake in accessing private class elements, JS will throw `TypeError` when the code is run to make it easier to catch the programming error. To catch errors earlier in development, try using a linter or type system.
+
+### Expert, complete semantics
+
+Public and private class elements are analogous to each other, with the difference being that public class elements are implemented as properties on the object, and private class elements are like a WeakMap, or internal slot. The rest of this section is written in terms of a WeakMap, but could be phrased equally in terms of internal slots.
+
+Public class elements are defined with \[\[DefineOwnProperty]] when they are added to the relevant object, and private class elements have a corresponding WeakMap, mapping objects to their values, which an object is added to when the element is defined for the object. For instance elements, this relevant object is either the prototype or the instance; for static elements, this relevant object is the constructor.
+
+Static fields are syntax sugar for defining a property or private field of a constructor after the rest of the class definition runs. As such, they are able to access or instantiate the class in their initializer. Static fields are installed on just the particular constructor, whether as an own property or a key in a singleton WeakMap.
+
+The above semantics are orthogonal and consistent among private vs public, static vs instance, and field vs method, making it easy for advanced programmers to do appropriate refactorings between features.
 
 ## "Back pocket" alternatives
 
-These alternatives are not currently proposed by the champion, but are considered possibly feasible options.
+These alternatives are not currently proposed by the champion, but are considered possibly feasible alternatives.
 
 ### Restricting private access to `static.#foo`
 
-Jordan Harband suggested that we make `static.` a syntax for referring to a property of the immediately enclosing class. If we add this feature, we could say that private static fields and methods may *only* be accessed that way. This has the disadvantage that, in the case of nested classes, there is no way to access the outer class's private static methods without copying that method into another local variable before entering into another nested class.
+Jordan Harband [suggested](https://github.com/tc39/proposal-class-fields/issues/43#issuecomment-328874041) that we make `static.` a syntax for referring to a property of the immediately enclosing class. If we add this feature, we could say that private static fields and methods may *only* be accessed that way. This has the disadvantage that, in the case of nested classes, there is no way to access the outer class's private static methods. However, as a mitigation, programmers may copy that method into another local variable before entering into another nested class, making it still available.
 
 ### Restricting static private access to `ClassName.#`
 
-The syntax for accessing private static fields and methods would be restricted to using the class name textually as the receiver. However, this would be a somewhat new kind of way to use scopes for early errors. Unlike var/let conflict early errors, this is much more speculative--the class name might actually be shadowed locally, which the early error would not catch, leading to a TypeError.
+The syntax for accessing private static fields and methods would be restricted to using the class name textually as the receiver. This would make it a SyntaxError to use `this.#privateMethod()` within a static method, for example. However, this would be a somewhat new kind of way to use scopes for early errors. Unlike var/let conflict early errors, this is much more speculative--the class name might actually be shadowed locally, which the early error would not catch, leading to a TypeError. In the championed semantics, such checks would be expected to be part of a linter or type system instead.
+
+### Install private static methods on subclasses; omit private static fields
+
+The most realistic "hazard" cases for private access on subclasses was in the use of private static methods from subclasses. Because private methods are immutable, they don't suffer the same mismatch as static fields, where semantics need to be defined when they are overwritten (which is ultimately an issue making it difficult to support private static fields on subclasses). For this reason, private methods could just be installed on subclass constructors and made callable with those as a receiver. You could argue that the different set of "relevant objects" for private static methods is somewhat analogous to the way that the set of objects is different for private instance methods vs public instance methods (the set of instances vs the prototype, or the constructor and subclasses vs the constructor). In effect, these semantics provide the equivalent of a "private prototype chain walk" for the state of the prototype chain when the instance was constructed. This alternative would meet many of the presented use cases and avoid the "hazard" semantics, but it is a bit ad-hoc and doesn't explain why static private fields are omitted.
 
 ## Alternate proposals not selected
 
@@ -165,14 +187,10 @@ Ron Buckton [has proposed](https://github.com/tc39/proposal-private-methods/issu
 
 ### Lexically scoped variables and function declarations in classes
 
-Allen Wirfs-Brock has proposed lexically scoped functions and variables within class bodies. The main issue here is that the proposed syntax may be unintuitive, [as explained here](https://github.com/tc39/proposal-static-class-features/issues/4#issuecomment-354515761).
+Allen Wirfs-Brock has proposed lexically scoped functions and variables within class bodies. The syntax that Allen proposed was an ordinary function declaration or let/const declaration in the top level of a class body. However, that  proposed syntax may be unintuitive: keywords like function and let don't exactly scream, "unlike the other things in this list, this declaration is not exported and it's also not specific to the instance". For that reason, this repository proposes that static class features hvae a shape analogous to a field or method declaration. ([see discussion in bug](https://github.com/tc39/proposal-static-class-features/issues/4#issuecomment-354515761)).
 
 ### Banning static private fields and methods
 
 This alternative was previously proposed in this repository. The alternative is dispreferred due to [the use cases in Issue #4](https://github.com/tc39/proposal-static-class-features/issues/4).
 
 A related alternative is moving ahead with static public fields while continuing development on static private fields. This repository is devoted to a full exploration of the problem space and is currently at Stage 2 which has been requested by committee members to proceed; it is not current proposed to advance some parts and not others.
-
-### Install private static methods on subclasses; omit private static fields
-
-This alternative would meet many of the presented use cases, but it is pretty ad-hoc.
