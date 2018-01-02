@@ -1,22 +1,24 @@
 # Static class features
 
+Champion: Daniel Ehrenberg
+
 Stage 2
 
 This proposal tracks the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3. This repository is created to explore the aspects which are still at Stage 2, to determine how to proceed to Stage 3 with some version of them.
 
 The current proposal is to continue with the previously proposed semantics, where
-1. **Public and private static fields are initialized only once, not per subclass**. [see below](https://github.com/tc39/proposal-static-class-features/blob/master/README.md#static-field-initialization)
+1. **Public and private static fields are initialized only once in the class where they are defined, not additionally in subclasses**. [see below](https://github.com/tc39/proposal-static-class-features/blob/master/README.md#static-field-initialization)
 1. **Private static fields and methods can be called only on the class; TypeError when used with anything else**. [see below](https://github.com/tc39/proposal-static-class-features/blob/master/README.md#static-private-access-on-subclasses)
 
 ## Static public fields
 
-This proposal will be focusing on adding only static public fields. Like static public methods, static public fields take a common idiom which was possible to write without class syntax and make it more ergonomic, have more declarative-feeling syntax (although the semantics are quite imperative), and allow free ordering with other class elements.
+Like static public methods, static public fields take a common idiom which was possible to write without class syntax and make it more ergonomic, have more declarative-feeling syntax (although the semantics are quite imperative), and allow free ordering with other class elements.
 
 ### Semantics
 
-Define an own property on the constructor which is set to the value of the initializer expression. The initializer is executed after the class TDZ is ended.
+Define an own property on the constructor which is set to the value of the initializer expression. The initializer is evaluated in a scope where the binding of the class is available--unlike in computed property names, the class can be referred to from inside initializers without leading to a ReferenceError.
 
-Alternate semantics are discussed in [Issue #2](https://github.com/tc39/proposal-static-class-features/issues/2).
+Alternate semantics are discussed in ["Initializing fields on subclasses"](https://github.com/tc39/proposal-static-class-features#initializing-fields-on-subclasses). However, they are not proposed here, for reasons detailed in that section. These semantics are justified in more detail in ["Static field initialization"](https://github.com/tc39/proposal-static-class-features#static-field-initialization).
 
 ### Use case
 
@@ -42,25 +44,41 @@ Declaring static properties in the class body is hoped to be cleaner and doing a
 
 ### Semantics
 
-The class has an own private method, similar to private instance methods. This method is not installed on subclasses.
+The class has an own private method, similar to private instance methods. Conceptually, private fields and methods can be thought of as being based on a WeakMap mapping objects to values; here, the WeakMap has just one key, which is the constructor where the private method was declared. This method is not installed on subclasses, which means that calling a static private method with a subclass as the receiver will lead to a TypeError. For the reasons in ["Static private access on subclasses"](#static-private-access-on-subclasses), the champion considers this not to be a significant problem.
 
 ### Use case
 
-See [#4](https://github.com/tc39/proposal-static-class-features/issues/4) for a larger worked example.
+Static private methods can be useful whenever there is shared behavior to extract into a function which uses private fields, but which doesn't work cleanly as an instance method. For example, multiple factory static methods may share part of their implementation, including parts which run both before and after construction of the instance. See [#4](https://github.com/tc39/proposal-static-class-features/issues/4) for more context about the following example.
 
 ```js
-class Point {
-  #x;
-  #y;
+export const registry = new JSDOMRegistry();
+
+export class JSDOM {
+  #createdBy;
   
-  // ...constructor, public methods, etc...
-  
-  static #equal(a, b) {
-    return a.#x === b.#x && a.#y === b.#y
+  #registerWithRegistry() {
+    // ... elided ...
+  }
+ 
+  async static fromURL(url, options = {}) {
+    normalizeFromURLOptions(options);
+    normalizeOptions(options);
+    
+    const body = await getBodyFromURL(url);
+    return JSDOM.#finalizeFactoryCreated(new JSDOM(body, options), "fromURL");
   }
   
-  static assertEqual(a, b) {
-    if (!Point.#equal(a, b)) alert("Different!")
+  static fromFile(filename, options = {}) {
+    normalizeOptions(options);
+    
+    const body = await getBodyFromFilename(filename);
+    return JSDOM.#finalizeFactoryCreated(new JSDOM(body, options), "fromFile");
+  }
+  
+  static #finalizeFactoryCreated(jsdom, factoryName) {
+    jsdom.#createdBy = factoryName;
+    jsdom.#registerWithRegistry(registry);
+    return jsdom;
   }
 }
 ```
@@ -71,7 +89,7 @@ In [Issue #1](https://github.com/tc39/proposal-static-class-features/issues/1), 
 
 ### Semantics
 
-The class has an own private field, similar to private instance fields. This field is not installed on subclasses, and the initializer is only ever evaluated once. As with static public fields, the initializer is evaluated after the TDZ has ended.
+The class has an own private field, similar to private instance fields. This field is not installed on subclasses, and the initializer is only ever evaluated once. As with static public fields, the initializer is evaluated in a scope where the binding of the class is available--unlike in computed property names, the class can be referred to from inside initializers without leading to a ReferenceError.
 
 ### Use case
 
@@ -94,7 +112,7 @@ class ColorFinder {
 }
 ```
 
-In [Issue #1](https://github.com/tc39/proposal-static-class-features/issues/1), there is further discussion about whether this feature is well-motivated. In particular, static private fields can typically be subsumed by lexically scoped variables outside the class declaration.
+In [Issue #1](https://github.com/tc39/proposal-static-class-features/issues/1), there is further discussion about whether this feature is well-motivated. In particular, static private fields can typically be subsumed by lexically scoped variables outside the class declaration. Static private fields are motivated mostly by a desire to allow free ordering of things inside classes and consistency with other class features.
 
 ## Why these semantics?
 
@@ -115,6 +133,7 @@ Justin Ridgewell [raised a concern](https://github.com/tc39/proposal-class-field
 - Type systems which want to be slightly more accepting could trigger an error on any class with a class which is subclassed and has public method which uses a private method or field without the class's name being the receiver. In the case of TypeScript, [this is already not polymorphic](https://github.com/Microsoft/TypeScript/issues/5863) so it would already flag instances of `this.#method` for a private static method call within a public static method.
 - Beginners can just learn the rule (helped by linters, type systems and error messages) to refer to the class when calling static private methods. Advanced users can learn the simple mental model that corresponds to the specification: private things are represented by a WeakMap, and public things by ordinary properties. When it's by the instance, the WeakMap has a key for each instance; when it's static, the WeakMap has a single key, for the constructor.
 - A guaranteed TypeError when the code runs on the subclass is a relatively easy to debug failure mode. This is how JS responds, at a high level, when you access an undefined variable as well, or read a property on undefined. A silent other interpretation would be the real footgun.
+- TC39 has worked hard on other guaranteed exceptions, such as the "temporal dead zone"--a ReferenceError 
 
 ## "Back pocket" alternatives
 
