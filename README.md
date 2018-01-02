@@ -129,7 +129,7 @@ Justin Ridgewell [raised a concern](https://github.com/tc39/proposal-class-field
 - Programmers can avoid the issue by instead writing `ClassName.#method`. This phrasing should be easier to understand, anyway--no need to worry about what `this` refers to.
 - It is not so bad to repeat the class name when accessing a private static method or field. When implementing a recursive function, the name of the function needs to be repeated; this case is similar.
 - It is statically known whether a private name refers to a static or instance-related class element. Therefore, implementations should be able to make helpful error messages for instance issues that say "TypeError: The private field #foo is only present on instances of ClassName, but it was accessed on an object which was not an instance", or, "TypeError: The static private method #bar is only present on the class ClassName; but it was accessed on a subclass or other object".
-- Linters could flag uses of `foo.#method` where `foo` is not the name of the class, and discourage its use that way.
+- Linters could flag uses of `Foo.#method` where `Foo` is not the name of the class, and discourage its use that way.
 - Type systems which want to be slightly more accepting could trigger an error on any class with a class which is subclassed and has public method which uses a private method or field without the class's name being the receiver. In the case of TypeScript, [this is already not polymorphic](https://github.com/Microsoft/TypeScript/issues/5863) so it would already flag instances of `this.#method` for a private static method call within a public static method.
 - Beginners can just learn the rule (helped by linters, type systems and error messages) to refer to the class when calling static private methods. Advanced users can learn the simple mental model that corresponds to the specification: private things are represented by a WeakMap, and public things by ordinary properties. When it's by the instance, the WeakMap has a key for each instance; when it's static, the WeakMap has a single key, for the constructor.
 - A guaranteed TypeError when the code runs on the subclass is a relatively easy to debug failure mode. This is how JS responds, at a high level, when you access an undefined variable as well, or read a property on undefined. A silent other interpretation would be the real footgun.
@@ -137,7 +137,7 @@ Justin Ridgewell [raised a concern](https://github.com/tc39/proposal-class-field
 
 ## Programmer mental model
 
-These proposed semantics are designed to be learnable by beginners as well as understandable at a deep level by experts, without any mismatch. The semantics here aren't just "something that works well in the spec", but rather a design which remains intuitive through multiple lenses.
+These proposed semantics are designed to be learnable by beginners as well as understandable at a deep level by experts, without any mismatch. The semantics here aren't just "something that works well in the spec", but rather a design which remains intuitive and consistent through multiple lenses.
 
 ### Beginner, simplified semantics
 
@@ -167,7 +167,9 @@ The syntax for accessing private static fields and methods would be restricted t
 
 ### Install private static methods on subclasses; omit private static fields
 
-The most realistic "hazard" cases for private access on subclasses was in the use of private static methods from subclasses. Because private methods are immutable, they don't suffer the same mismatch as static fields, where semantics need to be defined when they are overwritten (which is ultimately an issue making it difficult to support private static fields on subclasses). For this reason, private methods could just be installed on subclass constructors and made callable with those as a receiver. You could argue that the different set of "relevant objects" for private static methods is somewhat analogous to the way that the set of objects is different for private instance methods vs public instance methods (the set of instances vs the prototype, or the constructor and subclasses vs the constructor). In effect, these semantics provide the equivalent of a "private prototype chain walk" for the state of the prototype chain when the instance was constructed. This alternative would meet many of the presented use cases and avoid the "hazard" semantics, but it is a bit ad-hoc and doesn't explain why static private fields are omitted.
+The most realistic "hazard" cases for private access on subclasses was in the use of private static methods from subclasses. Because private methods are immutable, they don't suffer the same mismatch as static fields, where semantics need to be defined when they are overwritten (which is ultimately an issue making it difficult to support private static fields on subclasses). For this reason, private methods could just be installed on subclass constructors and made callable with those as a receiver.
+
+You could argue that the different set of "relevant objects" for private static methods is somewhat analogous to the way that the set of objects is different for private instance methods vs public instance methods (the set of instances vs the prototype, or the constructor and subclasses vs the constructor). In effect, these semantics provide the equivalent of a "private prototype chain walk" for the state of the prototype chain when the instance was constructed. This alternative would meet many of the presented use cases and avoid the "hazard" semantics, but it is a bit ad-hoc and doesn't explain why static private fields are omitted.
 
 ## Alternate proposals not selected
 
@@ -175,7 +177,9 @@ Several alternatives have been discussed within TC39. This repository is not pur
 
 ### Initializing fields on subclasses
 
-Kevin Gibbons has proposed that class fields have their initialisers re-run on subclasses. This would address the static private subclassing issue by adding those to subclasses as well, leading to no TypeError on use. However, this proposal has certain disadvantages:
+Kevin Gibbons has proposed that class fields have their initialisers re-run on subclasses. This would address the static private subclassing issue by adding those to subclasses as well, leading to no TypeError on use.
+
+However, this proposal has certain disadvantages:
 - Subclassing in JS has always been "declarative" so far, not actually executing anything from the superclass. It's really not clear this is the kind of hook we want to add to suddenly execute code here.
 - The use cases that have been presented so far for expecting the reinitialization semantics seem to use subclassing as a sort of way to create a new stateful class (e.g., with its own cache or counter, or copy of some other object). These could be accomplished with a factory function which returns a class, without requiring that this is how static fields work in general for cases that are not asking for this behavior.
 
@@ -187,7 +191,16 @@ Ron Buckton [has proposed](https://github.com/tc39/proposal-private-methods/issu
 
 ### Lexically scoped variables and function declarations in classes
 
-Allen Wirfs-Brock has proposed lexically scoped functions and variables within class bodies. The syntax that Allen proposed was an ordinary function declaration or let/const declaration in the top level of a class body. However, that  proposed syntax may be unintuitive: keywords like function and let don't exactly scream, "unlike the other things in this list, this declaration is not exported and it's also not specific to the instance". For that reason, this repository proposes that static class features hvae a shape analogous to a field or method declaration. ([see discussion in bug](https://github.com/tc39/proposal-static-class-features/issues/4#issuecomment-354515761)).
+Allen Wirfs-Brock has proposed lexically scoped functions and variables within class bodies. The syntax that Allen proposed was an ordinary function declaration or let/const declaration in the top level of a class body:
+
+```js
+class Foo {
+  function bar() { }  // lexically scoped to the class body
+  static method() { bar() }  // method on the constructor
+}
+```
+
+However, that  proposed syntax may be unintuitive: keywords like function and let don't exactly scream, "unlike the other things in this list, this declaration is not exported and it's also not specific to the instance". For that reason, this repository proposes that static class features have a shape analogous to a field or method declaration. ([see discussion in bug](https://github.com/tc39/proposal-static-class-features/issues/4#issuecomment-354515761)).
 
 ### Banning static private fields and methods
 
