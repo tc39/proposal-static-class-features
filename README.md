@@ -4,19 +4,21 @@ Stage 2
 
 This proposal tracks the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3. This repository is created to explore the aspects which are still at Stage 2, to determine how to proceed to Stage 3 with some version of them.
 
-## Features proposed for ECMAScript
+The current proposal is to continue with the previously proposed semantics, where
+1. **Public and private static fields are initialized only once, not per subclass**. See [discussion](https://github.com/tc39/proposal-static-class-features/issues/2).
+1. **Private static fields and methods can be called only on the class, not on subclasses**. They have the same sort of syntax as private instance fields and methods. See justifi
 
-### Static public fields
+## Static public fields
 
 This proposal will be focusing on adding only static public fields. Like static public methods, static public fields take a common idiom which was possible to write without class syntax and make it more ergonomic, have more declarative-feeling syntax (although the semantics are quite imperative), and allow free ordering with other class elements.
 
-#### Semantics
+### Semantics
 
 Define an own property on the constructor which is set to the value of the initializer expression. The initializer is executed after the class TDZ is ended.
 
 Alternate semantics are discussed in [Issue #2](https://github.com/tc39/proposal-static-class-features/issues/2).
 
-#### Use case
+### Use case
 
 ```js
 class CustomDate {
@@ -36,17 +38,15 @@ CustomDate.epoch = new CustomDate(0);
 
 Declaring static properties in the class body is hoped to be cleaner and doing a better job of meeting programmer expectations of what classes should be for. It's claimed that the latter workaround is a common idiom, and it would be a nice convenience for programmers if the property declaration could be lifted into the class body, matching how methods are placed there.
 
-## Features not proposed for further advancement
+## Static private methods
 
-Although they were present in the previous class fields and private methods proposals, static private class features are *not* proposed here for further advacement due to the issues discussed in [Issue #1](https://github.com/tc39/proposal-static-class-features/issues/1). There is a combination of an inherent difficult with determining reasonable semantics and lack of motivation due to adequate idioms for these use cases already existing. Please join the discussion in that issue to share your point of view.
-
-### Static private methods
-
-#### Semantics
+### Semantics
 
 The class has an own private method, similar to private instance methods. This method is not installed on subclasses.
 
-#### Use case
+### Use case
+
+See [#4](https://github.com/tc39/proposal-static-class-features/issues/4) for a larger worked example.
 
 ```js
 class Point {
@@ -65,15 +65,15 @@ class Point {
 }
 ```
 
-In [Issue #1](https://github.com/tc39/proposal-static-class-features/issues/1), there is further discussion about whether this feature is well-motivated. In particular, static private methods can typically be replaced by either lexically scoped function declarations outside the class declaration, or by private instance methods.
+In [Issue #1](https://github.com/tc39/proposal-static-class-features/issues/1), there is further discussion about whether this feature is well-motivated. In particular, static private methods can typically be replaced by either lexically scoped function declarations outside the class declaration, or by private instance methods. However, the current proposal is to include them, due to the use cases in [#4](https://github.com/tc39/proposal-static-class-features/issues/4).
 
-### Static private fields
+## Static private fields
 
-#### Semantics
+### Semantics
 
 The class has an own private field, similar to private instance fields. This field is not installed on subclasses, and the initializer is only ever evaluated once. As with static public fields, the initializer is evaluated after the TDZ has ended.
 
-#### Use case
+### Use case
 
 ```js
 class ColorFinder {
@@ -95,3 +95,65 @@ class ColorFinder {
 ```
 
 In [Issue #1](https://github.com/tc39/proposal-static-class-features/issues/1), there is further discussion about whether this feature is well-motivated. In particular, static private fields can typically be subsumed by lexically scoped variables outside the class declaration.
+
+## Why these semantics?
+
+### Static field initialization
+
+Kevin Gibbons [raised a concern](https://github.com/tc39/proposal-class-fields/issues/43#issuecomment-340517955) that JavaScript programmers may not be used to having objects with mutated properties which are exposed on the prototype chain, the way that static fields are inherited and may be overwritten. Some reasons why this is not that bad:
+- Many JS classes add a property to a constructor after a class definition. A subclass of Number, for example, would make this issue observable.
+- Lots of current educational materials, e.g., by Kyle Simpson and Eric Elliott, explain directly how prototypical inheritance of data properties in JS works to newer programmers.
+- This proposal is more conservative and going with the grain of JS by not adding a new time when code runs for subclassing, preserving identities as you'd expect, etc.
+
+### Static private access on subclasses
+
+Justin Ridgewell [raised a concern](https://github.com/tc39/proposal-class-fields/issues/43) that static fields and methods will lead to a TypeError when `this` is used as the receiver from within a static method, and they are invoked from a subclass. This concern is hoped to be not too serious because:
+- Programmers can avoid the issue by instead writing `ClassName.#method`. This phrasing should be easier to understand, anyway--no need to worry about what `this` refers to.
+- It is not so bad to repeat the class name when accessing a private static method or field. When implementing a recursive function, the name of the function needs to be repeated; this case is similar.
+- It is statically known whether a private name refers to a static or instance-related class element. Therefore, implementations should be able to make helpful error messages for instance issues that say "TypeError: The private field #foo is only present on instances of ClassName, but it was accessed on an object which was not an instance", or, "TypeError: The static private method #bar is only present on the class ClassName; but it was accessed on a subclass or other object".
+- Linters could flag uses of `foo.#method` where `foo` is not the name of the class, and discourage its use that way.
+- Type systems which want to be slightly more accepting could trigger an error on any class with a class which is subclassed and has public method which uses a private method or field without the class's name being the receiver. In the case of TypeScript, [this is already not polymorphic](https://github.com/Microsoft/TypeScript/issues/5863) so it would already flag instances of `this.#method` for a private static method call within a public static method.
+- Beginners can just learn the rule (helped by linters, type systems and error messages) to refer to the class when calling static private methods. Advanced users can learn the simple mental model that corresponds to the specification: private things are represented by a WeakMap, and public things by ordinary properties. When it's by the instance, the WeakMap has a key for each instance; when it's static, the WeakMap has a single key, for the constructor.
+- A guaranteed TypeError when the code runs on the subclass is a relatively easy to debug failure mode. This is how JS responds, at a high level, when you access an undefined variable as well, or read a property on undefined. A silent other interpretation would be the real footgun.
+
+## "Back pocket" alternatives
+
+These alternatives are not currently proposed by the champion, but are considered possibly feasible options.
+
+### Restricting private access to `static.#foo`
+
+Jordan Harband suggested that we make `static.` a syntax for referring to a property of the immediately enclosing class. If we add this feature, we could say that private static fields and methods may *only* be accessed that way. This has the disadvantage that, in the case of nested classes, there is no way to access the outer class's private static methods without copying that method into another local variable before entering into another nested class.
+
+### Restricting static private access to `ClassName.#`
+
+The syntax for accessing private static fields and methods would be restricted to using the class name textually as the receiver. However, this would be a somewhat new kind of way to use scopes for early errors. Unlike var/let conflict early errors, this is much more speculative--the class name might actually be shadowed locally, which the early error would not catch, leading to a TypeError.
+
+## Alternate proposals not selected
+
+Several alternatives have been discussed within TC39. This repository is not pursuing these ideas further. Some may be feasible, but are not selected by the champion for reasons described below.
+
+### Initializing fields on subclasses
+
+Kevin Gibbons has proposed that class fields have their initialisers re-run on subclasses. This would address the static private subclassing issue by adding those to subclasses as well, leading to no TypeError on use. However, this proposal has certain disadvantages:
+- Subclassing in JS has always been "declarative" so far, not actually executing anything from the superclass. It's really not clear this is the kind of hook we want to add to suddenly execute code here.
+- The use cases that have been presented so far for expecting the reinitialization semantics seem to use subclassing as a sort of way to create a new stateful class (e.g., with its own cache or counter, or copy of some other object). These could be accomplished with a factory function which returns a class, without requiring that this is how static fields work in general for cases that are not asking for this behavior.
+
+### Prototype chain walk for private fields and methods
+
+Ron Buckton [has proposed](https://github.com/tc39/proposal-private-methods/issues/18) that private field and method access could reach up the prototype chain. There are two ways that this could be specified, both of which have significant issues:
+- **Go up the normal prototype chain with \[\[GetPrototypeOf]]**. This would be observable and interceptible by proxies, violating a design goal of private fields that they not be manipulated that way.
+- **Use a separate, parallel, immutable prototype chain**. This alternative would add extra complexity, and break the way that other use of classes consistently works together with runtime mutations in the prototype chain.
+
+### Lexically scoped variables and function declarations in classes
+
+Allen Wirfs-Brock has proposed lexically scoped functions and variables within class bodies. The main issue here is that the proposed syntax may be unintuitive, [as explained here](https://github.com/tc39/proposal-static-class-features/issues/4#issuecomment-354515761).
+
+### Banning static private fields and methods
+
+This alternative was previously proposed in this repository. The alternative is dispreferred due to [the use cases in Issue #4](https://github.com/tc39/proposal-static-class-features/issues/4).
+
+A related alternative is moving ahead with static public fields while continuing development on static private fields. This repository is devoted to a full exploration of the problem space and is currently at Stage 2 which has been requested by committee members to proceed; it is not current proposed to advance some parts and not others.
+
+### Install private static methods on subclasses; omit private static fields
+
+This alternative would meet many of the presented use cases, but it is pretty ad-hoc.
