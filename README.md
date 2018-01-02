@@ -5,8 +5,8 @@ Stage 2
 This proposal tracks the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3. This repository is created to explore the aspects which are still at Stage 2, to determine how to proceed to Stage 3 with some version of them.
 
 The current proposal is to continue with the previously proposed semantics, where
-1. **Public and private static fields are initialized only once, not per subclass**. See [discussion](https://github.com/tc39/proposal-static-class-features/issues/2).
-1. **Private static fields and methods can be called only on the class, not on subclasses**. They have the same sort of syntax as private instance fields and methods. See justifi
+1. **Public and private static fields are initialized only once, not per subclass**. [see below](https://github.com/tc39/proposal-static-class-features/blob/master/README.md#static-field-initialization)
+1. **Private static fields and methods can be called only on the class; TypeError when used with anything else**. [see below](https://github.com/tc39/proposal-static-class-features/blob/master/README.md#static-private-access-on-subclasses)
 
 ## Static public fields
 
