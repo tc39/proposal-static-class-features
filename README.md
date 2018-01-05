@@ -429,4 +429,15 @@ However, that  proposed syntax may be unintuitive: keywords like function and le
 
 This alternative was previously proposed in this repository. The alternative is dispreferred due to [the use cases in Issue #4](https://github.com/tc39/proposal-static-class-features/issues/4).
 
-A related alternative is moving ahead with static public fields while continuing development on static private fields. This repository is devoted to a full exploration of the problem space and is currently at Stage 2 which has been requested by committee members to proceed; it is not current proposed to advance some parts and not others.
+A related alternative is moving ahead with static public fields while continuing development on static private fields. This repository is devoted to a full exploration of the problem space and is currently at Stage 2 which has been requested by committee members to proceed; it is not currently proposed to advance some parts and not others.
+
+### Switching all fields to being based on accessors
+
+The idea here is to avoid the subclassing overwriting hazard by changing the semantics of all field declarations: Rather than being own properties that are shadowed by a Set on a subclass, they are accessors (getter/setter pairs). In the case of instance fields, the accessor would read or write on the receiver. In the case of static fields, presumably, the read and write would happen on the superclass where they are defined, ignoring the receiver (otherwise, the TypeError issue from private static fields is then ported to public static fields as well, as the subclass constructor would not have its own value!). Private static fields would also follow this accessor pattern. In all cases, the getter would throw a TypeError when the receiver is an object which does not "have" the private field (e.g., its initializer has not run yet), an effectively new TDZ, which could reduce programmer errors.
+
+Some downsides of this proposal:
+- **Public fields would no longer be own properties**. This may be rather confusing for programmers, who may expect features like object spread to include public instance fields.
+- **Does not help implementations and might hurt startup time (maybe)**. This idea was initially proposed as part of a concept for having 'static shape', which could provide more predictability for implementers and programmers. At least on the implementation side, however, there would either have to be checks on each access to see if the field was initialized, or the initialization state would have to show up in its "hidden class". Either way, there's no efficiency gain if the fields are "already there, just in TDZ". In some implementations, startup time could be even worse than with own properties, until the system learns to optimize out the accessors.
+- **Loses the object model--we'd have to start again**. Data properties have an object model permitting non-writable, non-enumerable and non-configurable properties, including its use by `Object.freeze`. If we want to provide these sorts of capabilities to public fields, they would have to be built again separately.
+
+For these reasons, the public fields proposal has been based on own properties.
