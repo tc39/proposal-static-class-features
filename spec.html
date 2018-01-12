@@ -11,8 +11,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
 <emu-intro id=sec-intro>
   <h1>Introduction</h1>
   <p>This document specifies parts of the class features proposals which were split off in the November 2017 TC39 meeting from <a href="https://github.com/tc39/proposal-class-fields">class fields</a> and <a href="https://github.com/tc39/proposal-private-methods">private methods</a> proposals, for further consideration and advancement. In that meeting, static public fields, static private fields and static private methods were split off from the earlier "Stage 3" proposal and demoted to "Stage 2".</p>
-  <p>This proposal defines static public fields, static private fields, and static private methods. Compared to past proposals, the semantics of private static methods have changed to allow the receiver of a private static method to be a subclass. For further context and motivation, see <a href="https://github.com/tc39/proposal-static-class-features">the explainer document</a>.</p>
-  <p>This specification is phrased as a diff against the combination of the private methods and class fields proposals.</p>
+  <p>This proposal defines only static public fields. Static private fields and static private methods are omitted, with rationale documented <a href="https://github.com/tc39/proposal-static-class-features/issues/1">in this bug</a>. This specification text maintains the previously proposed semantics that each static public field is created just once, on the class it is defined, and not additional times for each subclass, as motivated <a href="https://github.com/tc39/proposal-static-class-features/issues/2">in this bug</a>. For further context and motivation, see <a href="https://github.com/tc39/proposal-static-class-features">the explainer document</a> for this proposal.</p>
 </emu-intro>
 
 <emu-clause id=sec-syntax>
@@ -29,18 +28,11 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
 
   <emu-clause id="sec-static-semantics-early-errors">
     <h1>Static Semantics: Early Errors</h1>
-    <emu-grammar><ins>ClassElement : `static` FieldDefinition `;`</ins></emu-grammar>
+    <emu-grammar>ClassElement : `static` FieldDefinition `;`</emu-grammar>
     <ul>
       <li>
-        <ins>It is a Syntax Error if PropName of |FieldDefinition| is `"prototype"` or `"constructor"`.</ins>
+        It is a Syntax Error if PropName of |FieldDefinition| is `"prototype"` or `"constructor"`.
       </li>
-    </ul>
-
-    <emu-grammar>
-      <del>ClassElement : `static` MethodDefinition</del>
-    </emu-grammar>
-    <ul>
-      <li><del>It is a Syntax Error if PrivateBoundNames of |MethodDefinition| is non-empty.</del></li>
     </ul>
   </emu-clause>
 
@@ -49,41 +41,60 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
 <emu-clause id=sec-algorithms>
   <h1>Algorithms</h1>
 
-<emu-clause id="initialize-class-elements" aoid="InitializeClassElements">
-  <h1>InitializeClassElements(_F_, _proto_)</h1>
-
+   <h1>Runtime Semantics: ClassElementEvaluation</h1>
+   <p>With parameters _object_ and _enumerable_.</p>
+ 
+  <emu-grammar><ins>ClassElement : `static` FieldDefinition `;`</ins></emu-grammar>
   <emu-alg>
-    1. Assert: Type(_F_) is Object and Type(_proto_) is Object.
-    1. Assert: _F_ is an ECMAScript function object.
-    1. Assert: _proto_ is ! Get(_C_, `"prototype"`).
-    1. Let _elements_ be the value of _F_'s [[Elements]] internal slot.
-    1. For each item _element_ in order from _elements_,
-      1. Assert: If _element_.[[Placement]] is `"prototype"` <del>or `"static"`</del>, then _element_.[[Key]] is not a Private Name.
-      1. If _element_.[[Kind]] is `"method"`,
-        1. Let _receiver_ be _F_ if _element_.[[Placement]] is `"static"`, else let _receiver_ be _proto_.
-        1. Perform ? DefineClassElement(_receiver_, _element_).
-    1. For each item _element_ in order from _elements_,
-      1. If _element_.[[Kind]] is `"field"` and _element_.[[Placement]] is `"static"` or `"prototype"`,
-        1. Assert: _element_.[[Descriptor]] does not have a [[Value]], [[Get]] or [[Set]] slot.
-        1. Let _receiver_ be _F_ if _element_.[[Placement]] is `"static"`, else let _receiver_ be _proto_.
-        1. Perform ? DefineClassElement(_receiver_, _element_).
-    1. Return.
+    <ins>1. Return ClassFieldDefinitionEvaluation of |FieldDefinition| with parameter *true* and _object_.</ins>
   </emu-alg>
-  <emu-note type=editor>Value properties are added before initializers so that all methods are visible from all initializers</emu-note>
+
+  <emu-grammar>ClassElement : FieldDefinition `;`</emu-grammar>
+  <emu-alg>
+    1. Return ClassFieldDefinitionEvaluation of |FieldDefinition| with parameter <ins>*false* and</ins> _object_.
+  </emu-alg>
+
+<emu-clause id="runtime-semantics-class-field-definition-evaluation">
+  <h1>Runtime Semantics: ClassFieldDefinitionEvaluation</h1>
+
+  <p>With parameters <ins>_isStatic_ and</ins> _homeObject_.</p>
+
+  <emu-grammar>
+    FieldDefinition : ClassElementName Initializer?
+  </emu-grammar>
+  <emu-alg>
+    1. Let _fieldName_ be the result of evaluating |ClassElementName|.
+    1. ReturnIfAbrupt(_fieldName_).
+    1. If |Initializer_opt| is present,
+      1. Let _lex_ be the Lexical Environment of the running execution context.
+      1. Let _formalParameterList_ be an instance of the production <emu-grammar>FormalParameters : [empty]</emu-grammar>.
+      1. Let _initializer_ be FunctionCreate(~Method~, _formalParameterList_, |Initializer|, _lex_, *true*).
+      1. Perform MakeMethod(_initializer_, _homeObject_).
+      1. Let _isAnonymousFunctionDefinition_ be IsAnonymousFunctionDefinition(|Initializer|).
+    1. Else,
+      1. Let _initializer_ be ~empty~.
+      1. Let _isAnonymousFunctionDeclaration_ be *false*.
+    1. Return a List containing Record {
+         [[Name]]: _fieldName_, 
+         [[Initializer]]: _initializer_,
+         <ins>[[Static]]: _isStatic_,</ins>
+         [[IsAnonymousFunctionDefinition]]: _isAnonymousFunctionDefinition_
+       }.
+  </emu-alg>
 </emu-clause>
 
-<emu-clause id="copy-immutable-private-elements" aoid=CopyImmutablePrivateElements>
-  <h1>CopyImmutablePrivateElements ( _F_, _constructorProto_ )</h1>
+<emu-clause id="initialize-public-static-fields">
+  <h1>InitializeStaticFields(_F_)</h1>
 
   <emu-alg>
-    1. For _entry_ in _constructorProto_.[[PrivateFieldDescriptors]],
-      1. Let _name_ be _entry_.[[PrivateName]].
-      1. Let _descriptor_ be _entry_.[[PrivateFieldDescriptor]].
-      1. If IsAccessorDescriptor(_descriptor_) or _descriptor_.[[Writable]] is *false*,
-        1. Perform ! PrivateFieldDefine(_name_, _F_, _descriptor_).
+    1. Assert: Type(_F_) is Object.
+    1. Assert: _F_ is an ECMAScript function object.
+    1. Let _fieldRecords_ be the value of _F_'s [[Fields]] internal slot.
+    1. For each item _fieldRecord_ in order from _fieldRecords_,
+      1. If _fieldRecord_.[[Static]] is *true*, then
+        1. Perform ? DefineField(_F_, _fieldRecord_).
+    1. Return.
   </emu-alg>
-
-  <emu-note>In this specification, the only elements which will be copied by this algorithm are static private methods and accessors.</emu-note>
 </emu-clause>
 
 <emu-clause id="initialize-public-instance-fields">
@@ -129,6 +140,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
         1. Let _constructorParent_ be the intrinsic object %FunctionPrototype%.
       1. Else,
         1. Set the running execution context's LexicalEnvironment to _classScope_.
+        1. NOTE: The running execution context's PrivateNameEnvironment is _outerPrivateEnvironment_ when evaluating |ClassHeritage|.
         1. Let _superclass_ be the result of evaluating |ClassHeritage|.
         1. Set the running execution context's LexicalEnvironment to _lex_.
         1. ReturnIfAbrupt(_superclass_).
@@ -161,27 +173,32 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       1. Perform MakeConstructor(_F_, *false*, _proto_).
       1. Perform MakeClassConstructor(_F_).
       1. Perform CreateMethodProperty(_proto_, `"constructor"`, _F_).
-      1. If |ClassBody_opt| is not present, let _elements_ be a new empty List.
-      1. Else, let _definitions_ be NonConstructorElementDefinitions of |ClassBody|. NOTE: Simply renaming this internal algorithm will be enough; it includes fields.
-      1. Let _elements_ be a new empty List.
-      1. For each |ClassElement| _d_ in order from _definitions_,
-        1. Let _newElements_ be the result of performing ClassElementEvaluation for _d_ with arguments _F_, *false*, and ~empty~.
-        1. If _newElements_ is an abrupt completion, then
+      1. If |ClassBody_opt| is not present, let _methods_ be a new empty List.
+      1. Else, let _elements_ be NonConstructorMethodDefinitions of |ClassBody|.
+      1. Let _fieldRecords_ be a new empty List.
+      1. For each |ClassElement| _e_ in order from _elements_
+        1. If IsStatic of _e_ is *false*, then
+          1. Let _fields_ be the result of performing ClassElementEvaluation for _e_ with arguments _proto_ and *false*.
+        1. Else,
+          1. Let _fields_ be the result of performing ClassElementEvaluation for _e_ with arguments _F_ and *false*.
+        1. If _fields_ is an abrupt completion, then
           1. Set the running execution context's LexicalEnvironment to _lex_.
           1. Set the running execution context's PrivateNameEnvironment to _outerPrivateEnvironment_.
           1. Return Completion(_status_).
-        1. Append _newElements_ to _elements_
-      1. Let _elements_ be CoalescePrivateAccessors(_elements_).
+        1. Append to _fieldRecords_ the elements of _fields_.
       1. Set the running execution context's LexicalEnvironment to _lex_.
-      1. Set the running execution context's PrivateNameEnvironment to _outerPrivateEnvironment_.
       1. If _className_ is not *undefined*, then
         1. Perform _classScopeEnvRec_.InitializeBinding(_className_, _F_).
-      1. Set the value of _F_'s [[Elements]] internal slot to _elements_.
-      1. <ins>Perform ! CopyImmutablePrivateElements(_F_, _constructorParent_).</ins>
-      1. Perform ? InitializeClassElements(_F_, _proto_).
+      1. Set the value of _F_'s [[Fields]] internal slot to _fieldRecords_.
+      1. Set the running execution context's LexicalEnvironment to _classScope_.
+      1. Set the running execution context's PrivateNameEnvironment to _outerPrivateEnvironment_.
+      1. <ins>Let _result_ be InitializeStaticFields(_F_).</ins>
+      1. <ins>If _result_ is an abrupt completion, then</ins>
+        1. <ins>Set the running execution context's LexicalEnvironment to _lex_.</ins>
+        1. <ins>Return Completion(_result_).</ins>
+      1. Set the running execution context's LexicalEnvironment to _lex_.
       1. Return _F_.
     </emu-alg>
   </emu-clause>
-
 
 </emu-clause>
