@@ -322,7 +322,7 @@ Base.set('xyz');
 Sub.get();  // => 'xyz'
 Sub.set('abc');
 
-Base.set();  // 'abc'
+Base.get();  // 'abc'
 ```
 
 Here, `static` refers to the base class, not the subclass, so issues about access on subclass instances do not occur.
@@ -354,7 +354,7 @@ Base.set('xyz');
 Sub.get();  // => 'xyz'
 Sub.set('abc');
 
-Base.set();  // 'abc'
+Base.get();  // 'abc'
 ```
 
 Here, explicit references the base class, not the subclass, so issues about access on subclass instances do not occur. A reference like `this.#field` would be an early error, helping to avoid errors by programmers.
