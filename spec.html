@@ -23,6 +23,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       `static` MethodDefinition[?Yield, ?Await]
       FieldDefinition[?Yield, ?Await] `;`
       <ins>`static` FieldDefinition[?Yield, ?Await] `;`</ins>
+      <ins>`&lt;placeholder>` Declaration[?Yield, ?Await]</ins>
       `;`
   </emu-grammar>
 
@@ -41,18 +42,29 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
 <emu-clause id=sec-algorithms>
   <h1>Algorithms</h1>
 
+<emu-clause id="runtime-semantics-class-element-evaluation">
    <h1>Runtime Semantics: ClassElementEvaluation</h1>
    <p>With parameters _object_ and _enumerable_.</p>
  
   <emu-grammar><ins>ClassElement : `static` FieldDefinition `;`</ins></emu-grammar>
   <emu-alg>
-    <ins>1. Return ClassFieldDefinitionEvaluation of |FieldDefinition| with parameter *true* and _object_.</ins>
+    1. <ins>Return ClassFieldDefinitionEvaluation of |FieldDefinition| with parameter *true* and _object_.</ins>
   </emu-alg>
 
   <emu-grammar>ClassElement : FieldDefinition `;`</emu-grammar>
   <emu-alg>
     1. Return ClassFieldDefinitionEvaluation of |FieldDefinition| with parameter <ins>*false* and</ins> _object_.
   </emu-alg>
+
+  <emu-grammar><ins>ClassElement : `&lt;placeholder>` Declaration</ins></emu-grammar>
+  <ins class="block"><emu-alg>
+    1. Return a List containing Record {
+         [[Declaration]]: |Declaration|
+         [[Static]]: *true*,
+         [[IsAnonymousFunctionDefinition]]: *false*
+       }.
+  </emu-alg></ins>
+</emu-clause>
 
 <emu-clause id="runtime-semantics-class-field-definition-evaluation">
   <h1>Runtime Semantics: ClassFieldDefinitionEvaluation</h1>
@@ -92,7 +104,11 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
     1. Let _fieldRecords_ be the value of _F_'s [[Fields]] internal slot.
     1. For each item _fieldRecord_ in order from _fieldRecords_,
       1. If _fieldRecord_.[[Static]] is *true*, then
-        1. Perform ? DefineField(_F_, _fieldRecord_).
+        1. <ins>If _fieldRecord_ has a [[Declaration]] field,</ins>
+          1. <ins>Let _ret_ be the result of evaluating _fieldRecord_.[[Declaration]].</ins>
+          1. <ins>ReturnIfAbrupt(_ret_).</ins>
+        1. <ins>Else,</ins>
+          1. Perform ? DefineField(_F_, _fieldRecord_).
     1. Return.
   </emu-alg>
 </emu-clause>
@@ -119,6 +135,37 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       </emu-alg>
   </emu-clause>
 
+    <emu-clause id="sec-block-static-semantics-lexicallyscopeddeclarations">
+      <h1>Static Semantics: LexicallyScopedDeclarations</h1>
+      <emu-see-also-para op="LexicallyScopedDeclarations"></emu-see-also-para>
+      <emu-grammar>ClassBody : ClassElementList</emu-grammar>
+      <emu-alg>
+        1. Return the LexicallyScopedDeclarations of |ClassElementList|.
+      </emu-alg>
+      <emu-grammar>ClassElementList : ClassElementList ClassElement</emu-grammar>
+      <emu-alg>
+        1. Let _declarations_ be LexicallyScopedDeclarations of |ClassElementList|.
+        1. Append to _declarations_ the elements of the LexicallyScopedDeclarations of |ClassElement|.
+        1. Return _declarations_.
+      </emu-alg>
+      <emu-grammar>ClassElementList : ClassElement</emu-grammar>
+      <emu-alg>
+        1. Return the LexicallyScopedDeclarations of |ClassElement|.
+      </emu-alg>
+      <emu-grammar>ClassElement : MethodDefinition</emu-grammar>
+      <emu-grammar>ClassElement : `static` MethodDefinition</emu-grammar>
+      <emu-grammar>FieldDefinition[?Yield, ?Await] `;`</emu-grammar>
+      <emu-grammar>`static` FieldDefinition[?Yield, ?Await] `;`</emu-grammar>
+      <emu-grammar>ClassElement : `;`</emu-grammar>
+      <emu-alg>
+        1. Return a new empty List.
+      </emu-alg>
+      <emu-grammar>ClassElement : `&lt;placeholder&gt;` Declaration</emu-grammar>
+      <emu-alg>
+        1. Return a new List containing DeclarationPart of |Declaration|.
+      </emu-alg>
+    </emu-clause>
+
   <emu-clause id="runtime-semantics-class-definition-evaluation">
     <h1>Runtime Semantics: ClassDefinitionEvaluation</h1>
     <p>With parameter _className_.</p>
@@ -135,6 +182,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       1. If |ClassBody_opt| is present, then
         1. For each element _dn_ of the PrivateBoundNames of |ClassBody_opt|,
           1. Perform _classPrivateEnvRec_.CreateImmutableBinding(_dn_, *true*).
+      1. <ins>Perform ! BlockDeclarationInstantiation(|ClassBody|, _classScopeEnvRec_).</ins>
       1. If |ClassHeritage_opt| is not present, then
         1. Let _protoParent_ be the intrinsic object %ObjectPrototype%.
         1. Let _constructorParent_ be the intrinsic object %FunctionPrototype%.
@@ -186,17 +234,17 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
           1. Set the running execution context's PrivateNameEnvironment to _outerPrivateEnvironment_.
           1. Return Completion(_status_).
         1. Append to _fieldRecords_ the elements of _fields_.
-      1. Set the running execution context's LexicalEnvironment to _lex_.
       1. If _className_ is not *undefined*, then
         1. Perform _classScopeEnvRec_.InitializeBinding(_className_, _F_).
+      1. <del>Set the running execution context's LexicalEnvironment to _lex_.</del>
       1. Set the value of _F_'s [[Fields]] internal slot to _fieldRecords_.
-      1. Set the running execution context's LexicalEnvironment to _classScope_.
-      1. Set the running execution context's PrivateNameEnvironment to _outerPrivateEnvironment_.
       1. <ins>Let _result_ be InitializeStaticFields(_F_).</ins>
       1. <ins>If _result_ is an abrupt completion, then</ins>
         1. <ins>Set the running execution context's LexicalEnvironment to _lex_.</ins>
+        1. <ins>Set the running execution context's PrivateNameEnvironment to _outerPrivateEnvironment_.</ins>
         1. <ins>Return Completion(_result_).</ins>
-      1. Set the running execution context's LexicalEnvironment to _lex_.
+      1. <ins>Set the running execution context's LexicalEnvironment to _lex_.</ins>
+      1. Set the running execution context's PrivateNameEnvironment to _outerPrivateEnvironment_.
       1. Return _F_.
     </emu-alg>
   </emu-clause>
