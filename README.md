@@ -9,7 +9,7 @@ This proposal:
 1. **Adds lexical declarations in class bodies**. Lexical declarations are prefixed by a keyword to differentiate them from methods and fields.
 1. **Does not add private static fields and private static methods**. Lexical declarations are intended to fill static private use cases.
 
-This proposal was created to track the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3. Although lexical declarations are significantly different from the previous proposal of static private methods and fields, 
+This proposal was created to track the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3. Although lexical declarations are significantly different from the previous proposal of static private methods and fields, this feature set is working to accomplish the same use cases, so it is being pursued as part of the same TC39 proposal.
 
 ## Static public fields
 
@@ -33,11 +33,11 @@ class CustomDate {
 CustomDate.epoch = new CustomDate(0);
 ```
 
-Declaring static properties in the class body is hoped to be cleaner and doing a better job of meeting programmer expectations of what classes should be for. It's claimed that the latter workaround is a common idiom, and it would be a nice convenience for programmers if the property declaration could be lifted into the class body, matching how methods are placed there.
+Declaring static properties in the class body is hoped to be cleaner and doing a better job of meeting programmer expectations of what classes should be for. The latter workaround is a somewhat common idiom, and it would be a nice convenience for programmers if the property declaration could be lifted into the class body, matching how methods are placed there.
 
 ### Semantics
 
-Define an own property on the constructor which is set to the value of the initializer expression. The initializer is evaluated in a scope where the binding of the class is available--unlike in computed property names, the class can be referred to from inside initializers without leading to a ReferenceError.
+Define an own property on the constructor which is set to the value of the initializer expression. The initializer is evaluated in a scope where the binding of the class is available--unlike in computed property names, the class can be referred to from inside initializers without leading to a ReferenceError. The `this` value in the initializer is the constructor.
 
 See [ALTERNATIVES.md](https://github.com/tc39/proposal-static-class-features/blob/master/ALTERNATIVES.md#static-fields) for an explanation of some of the edge cases and alternatives considered.
 
