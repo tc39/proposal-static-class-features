@@ -1,10 +1,113 @@
 # Alternate proposals not selected
 
-This document summarizes alternate proposals for semantics of static class features which are not currently being proposed.
+This document summarizes alternate proposals for semantics of static class features which are not currently being proposed. The investigation here supports the current proposal, as it turns out that the alternatives run into significant issues.
 
-## Static private methods and accessors which are inherited
+## Static fields
 
-### Semantics
+Static public fields are proposed as ordinary data properties of constructors. This section explores the edge cases, implications and some rejected alternative proposals for their semantics.
+
+### Current proposal: Static fields are initialized only once
+
+Kevin Gibbons [raised a concern](https://github.com/tc39/proposal-class-fields/issues/43#issuecomment-340517955) that JavaScript programmers may not be used to having objects with mutated properties which are exposed on the prototype chain, the way that static fields are inherited and may be overwritten. Some reasons why this is not that bad:
+- Many JS classes add a property to a constructor after a class definition. A subclass of Number, for example, would make this issue observable.
+- Lots of current educational materials, e.g., by Kyle Simpson and Eric Elliott, explain directly how prototypical inheritance of data properties in JS works to newer programmers.
+- This proposal is more conservative and going with the grain of JS by not adding a new time when code runs for subclassing, preserving identities as you'd expect, etc.
+
+### Semantics in an edge case with Set and inheritance
+
+Example of how these semantics work out with subclassing (this is not a recommended use of constructors as stateful objects, but it shows the semantic edge cases):
+
+```js
+static Counter {
+  static count = 0;
+  static inc() { this.count++; }
+}
+class SubCounter extends Counter { }
+
+Counter.hasOwnProperty("count");  // true
+SubCounter.hasOwnProperty("count");  // false
+
+Counter.count; // 0, own property
+SubCounter.count; // 0, inherited
+
+Counter.inc();  // undefined
+Counter.count;  // 1, own property
+SubCounter.count;  // 1, inherited
+
+// ++ will read up the prototype chain and write an own property
+SubCounter.inc();
+
+Counter.hasOwnProperty("count");  // true
+SubCounter.hasOwnProperty("count");  // true
+
+Counter.count;  // 1, own property
+SubCounter.count;  // 2, own property
+
+Counter.inc(); Counter.inc();
+Counter.count;  // 3, own property
+SubCounter.count;  // 2, own property
+```
+
+### Why not to reinitialize public fields on subclasses
+
+Kevin Gibbons has proposed that class fields have their initialisers re-run on subclasses. This would address the static private subclassing issue by adding those to subclasses as well, leading to no TypeError on use.
+
+With this alternate, the initial counter example would have the following semantics:
+
+```js
+// NOTE: COUTNERFACTUAL SEMANTICS BELOW
+static Counter {
+  static count = 0;
+  static inc() { this.count++; }
+}
+class SubCounter extends Counter { }
+
+Counter.hasOwnProperty("count");  // true
+SubCounter.hasOwnProperty("count");  // true
+
+Counter.count; // 0, own property
+SubCounter.count; // 0, own property
+
+Counter.inc();  // undefined
+Counter.count;  // 1, own property
+SubCounter.count;  // 0, own property
+
+// ++ is just dealing with own properties the whole time
+SubCounter.inc();
+
+Counter.hasOwnProperty("count");  // true
+SubCounter.hasOwnProperty("count");  // true
+
+Counter.count;  // 1, own property
+SubCounter.count;  // 1, own property
+
+Counter.inc(); Counter.inc();
+Counter.count;  // 3, own property
+SubCounter.count;  // 1, own property
+```
+
+However, these alternate semantics have certain disadvantages:
+- Subclassing in JS has always been "declarative" so far, not actually executing anything from the superclass. It's really not clear this is the kind of hook we want to add to suddenly execute code here.
+- The use cases that have been presented so far for expecting the reinitialization semantics seem to use subclassing as a sort of way to create a new stateful class (e.g., with its own cache or counter, or copy of some other object). These could be accomplished with a factory function which returns a class, without requiring that this is how static fields work in general for cases that are not asking for this behavior.
+
+### Switching all fields to being based on accessors
+
+The idea here is to avoid the subclassing overwriting hazard by changing the semantics of all field declarations: Rather than being own properties that are shadowed by a Set on a subclass, they are accessors (getter/setter pairs). In the case of instance fields, the accessor would read or write on the receiver. In the case of static fields, presumably, the read and write would happen on the superclass where they are defined, ignoring the receiver (otherwise, the TypeError issue from private static fields is then ported to public static fields as well, as the subclass constructor would not have its own value!). Private static fields would also follow this accessor pattern. In all cases, the getter would throw a TypeError when the receiver is an object which does not "have" the private field (e.g., its initializer has not run yet), an effectively new TDZ, which could reduce programmer errors.
+
+Some downsides of this proposal:
+- **Public fields would no longer be own properties**. This may be rather confusing for programmers, who may expect features like object spread to include public instance fields.
+- **Does not help implementations and might hurt startup time (maybe)**. This idea was initially proposed as part of a concept for having 'static shape', which could provide more predictability for implementers and programmers. At least on the implementation side, however, there would either have to be checks on each access to see if the field was initialized, or the initialization state would have to show up in its "hidden class". Either way, there's no efficiency gain if the fields are "already there, just in TDZ". In some implementations, startup time could be even worse than with own properties, until the system learns to optimize out the accessors.
+- **Loses the object model--we'd have to start again**. Data properties have an object model permitting non-writable, non-enumerable and non-configurable properties, including its use by `Object.freeze`. If we want to provide these sorts of capabilities to public fields, they would have to be built again separately.
+
+For these reasons, the public fields proposal has been based on own properties.
+
+## Static private
+
+This proposal does not include static private fields, methods or accessors. An investigation into various semantic alternatives found none that were satisfactory. Instead, lexically scoped declarations in classes are proposed to fill most of the use cases of static private.
+
+### Static private methods and accessors which are inherited
+
+#### Semantics
 
 Like [instance private methods](https://github.com/tc39/proposal-private-methods/blob/master/DETAILS.md), static private methods are conceptually non-writable private fields on objects whose value is the method. There is no prototype chain access in private fields or methods; instead, the methods are installed in each object that would be able to access the method through prototype chain lookups.
 
@@ -50,7 +153,7 @@ export class JSDOM {
 
 In [Issue #1](https://github.com/tc39/proposal-static-class-features/issues/1), there is further discussion about whether this feature is well-motivated. In particular, static private methods can typically be replaced by either lexically scoped function declarations outside the class declaration, or by private instance methods. However, the current proposal is to include them, due to the use cases in [#4](https://github.com/tc39/proposal-static-class-features/issues/4).
 
-### Subclassing use case
+#### Subclassing use case
 
 As described above, static private methods may be invoked with subclass instances as the receiver. Note that this does *not* mean that subclass bodies may call private methods from superclasses--the methods are private, not protected, and it would be a SyntaxError to call the method from a place where it's not syntactically present.
 
@@ -82,19 +185,19 @@ class SubMyArray extends MyArray {
 let subarr = MySubArray.from([1, 2, 3]);
 ```
 
-### Why this is not proposed
+#### Why this is not proposed
 
 Static private methods in this form have fairly complicated semantics--it's the act of extending a class from another class that copies them onto the subclass. It does not seem like it will be feasible to use similar semantics for object literals. The use cases for static private methods are very similar to the use cases for lexically scoped function declarations. Therefore, it does not seem like this feature is worth the trouble.
 
-## Static private fields
+### Static private fields with a TypeError on access from subclasses
 
-### Semantics
+#### Semantics
 
 Unlike static private methods, static private fields are private fields just of the constructor. If a static private field is read with the receiver being a subclass, a TypeError will be triggered.
 
 As with static public fields, the initializer is evaluated in a scope where the binding of the class is available--unlike in computed property names, the class can be referred to from inside initializers without leading to a ReferenceError. As described in [Why only initialize static fields once](#why-only-initialize-static-fields-once), the initializer is evaluated only once.
 
-### Use case
+#### Use case
 
 ```js
 class ColorFinder {
@@ -119,7 +222,7 @@ In [Issue #1](https://github.com/tc39/proposal-static-class-features/issues/1), 
 
 The behavior of private static methods have, in copying to subclass constructors, does not apply to private static fields. This is due to the complexity and lack of a good option for semantics which are analogous to static public fields, as explained below.
 
-### TypeError case
+#### TypeError case
 
 Justin Ridgewell [expressed concern](https://github.com/tc39/proposal-class-fields/issues/43) about the TypeError that results from static private field access from subclasses. Here's an example of that TypeError, which occurs when code ported from the above static public fields example is switched to private fields:
 
@@ -142,9 +245,9 @@ SubCounter.count;  // TypeError
 
 A TypeError is used here because no acceptable alternative would have the semantics which are analogous to static public fields. Some alternatives are discussed below.
 
-#### Why this TypeError is not so bad
+#### Why this TypeError might not be so bad
 
-The above concern is hoped to be not too serious because:
+Daniel Ehrenberg has argued that the TypeError would not be so bad for the following reasons:
 - Programmers can avoid the issue by instead writing `ClassName.#field`. This phrasing should be easier to understand, anyway--no need to worry about what `this` refers to.
 - It is not so bad to repeat the class name when accessing a private static field. When implementing a recursive function, the name of the function needs to be repeated; this case is similar.
 - It is statically known whether a private name refers to a static or instance-related class field. Therefore, implementations should be able to make helpful error messages for instance issues that say "TypeError: The private field #foo is only present on instances of ClassName, but it was accessed on an object which was not an instance", or, "TypeError: The static private method #bar is only present on the class ClassName; but it was accessed on a subclass or other object", etc.
@@ -154,31 +257,11 @@ The above concern is hoped to be not too serious because:
 - A guaranteed TypeError when the code runs on the subclass is a relatively easy to debug failure mode. This is how JS responds, at a high level, when you access an undefined variable as well, or read a property on undefined. A silent other interpretation would be the real footgun.
 - TC39 has worked hard on other guaranteed exceptions, such as the "temporal dead zone"--a ReferenceError from reading `let`- or `const`-declared variables whose declaration has not yet been reached. Here, a runtime error was considered very useful for programmers and a way of preventing a "footgun". In this case, we're getting such a guaranteed error.
 
-### Why this proposal is not pursued
+#### Why this proposal is not pursued
 
-Despite those reasons above, it still may be confusing that a TypeError is given. 
+Despite those reasons above, it still may be confusing that a TypeError is given. Additionally, it could be confusing if private static fields inherit and private static methods do not. Instead, lexical declarations fulfill similar use cases.
 
-## Programmer mental model
-
-These proposed semantics are designed to be learnable by beginners as well as understandable at a deep level by experts, without any mismatch. The semantics here aren't just "something that works well in the spec", but rather a design which remains intuitive and consistent through multiple lenses.
-
-### Beginner, simplified semantics
-
-To make something inaccessible from outside the class, put a `#` at the beginning of the name. When a field or method has `static`, that means it is on the class, not on instances. To access static class elements, use the syntax `ClassName.element` or `ClassName.#element`, depending on whether the name contains a `#`. Note that the latter case is available only inside the class declaration. If you make a mistake in accessing private class elements, JS will throw `TypeError` when the code is run to make it easier to catch the programming error. To catch errors earlier in development, try using a linter or type system.
-
-### Expert, complete semantics
-
-Public and private class elements are analogous to each other, with the difference being that public class elements are implemented as properties on the object, and private class elements are like a WeakMap, or internal slot. The rest of this section is written in terms of a WeakMap, but could be phrased equally in terms of internal slots.
-
-Public class elements are defined with \[\[DefineOwnProperty]] when they are added to the relevant object, and private class elements have a corresponding WeakMap, mapping objects to their values, which an object is added to when the element is defined for the object. For instance fields, this relevant object is the instance; for static fields, this relevant object is the constructor.
-
-Private methods are a special case--they are made to be inherited, either from the prototype or a superclass, but the prototype chain is not accessed when a private method is read. Instead of inheriting, private methods are added as own fields on all of the relevant objects, whether it's all instances inheriting from the class for ordinary methods, or all subclasses of a constructor for a static method.
-
-Static fields are syntax sugar for defining a property or private field of a constructor after the rest of the class definition runs. As such, they are able to access or instantiate the class in their initializer. Static fields are installed on just the particular constructor, whether as an own property or a key in a singleton WeakMap.
-
-The above semantics are orthogonal and consistent among private vs public, static vs instance, and field vs method, making it easy for advanced programmers to do appropriate refactorings between features.
-
-## Allow static private fields to be read from subclasses
+### Allow static private fields to be read from subclasses
 
 If we want to get static private fields to be as close as possible to static public fields when it comes to inheritance semantics: The shadowing property of writes to properties on the prototype chain is very weird and complicated, and wouldn't make sense to replicate; on the other hand, reads up the prototype chain are simple and intelligible. We could allow reads, but not writes, to take place from subclasses. The reads would reflect writes that happen later to the superclass's static private field.
 
@@ -208,13 +291,19 @@ Sub.get();  // => 'xyz' in this alternative, TypeError in the main proposal
 Sub.set('abc');  // TypeError
 ```
 
-## Imitate a prototype chain for static private field semantics
+### Imitate a prototype chain for static private field semantics
+
+Ron Buckton [has](https://github.com/tc39/proposal-class-fields/issues/43#issuecomment-348045445) [proposed](https://github.com/tc39/proposal-private-methods/issues/18) that private field and method access could reach up the prototype chain. There are two ways that this could be specified, both of which have significant issues:
+- **Go up the normal prototype chain with \[\[GetPrototypeOf]]**. This would be observable and interceptible by proxies, violating a design goal of private fields that they not be manipulated that way.
+- **Use a separate, parallel, immutable prototype chain**. This alternative would add extra complexity, and break the way that other use of classes consistently works together with runtime mutations in the prototype chain.
+
+A positive aspect of Ron's proposal is that it preserves identical behavior with respect to subclassing as public static fields.
 
 In [this PR](https://github.com/tc39/proposal-static-class-features/pull/7), logic is drafted to give inherited static private fields semantics which are similar to inherited public static fields: There is, in effect, a "private prototype chain" which is maintained; reads to private static fields go up that prototype chain, while writes are reflected only in that one constructor.
 
 This alternative is rejected due to its high complexity and implementation requirements, which do not seem justified by use cases or programmer demand, especially in the presence of the lexically scoped function alternative.
 
-## Restricting static private field access to `static.#foo`
+### Restricting static private field access to `static.#foo`
 
 Jordan Harband [suggested](https://github.com/tc39/proposal-class-fields/issues/43#issuecomment-328874041) that we make `static.` a syntax for referring to a property of the immediately enclosing class. If we add this feature, we could say that private static fields and methods may *only* be accessed that way. This has the disadvantage that, in the case of nested classes, there is no way to access the outer class's private static methods. However, as a mitigation, programmers may copy that method into another local variable before entering into another nested class, making it still available.
 
@@ -246,7 +335,7 @@ Base.get();  // 'abc'
 
 Here, `static` refers to the base class, not the subclass, so issues about access on subclass instances do not occur.
 
-## Restricting static field private access to `ClassName.#foo`
+### Restricting static field private access to `ClassName.#foo`
 
 The syntax for accessing private static fields and methods would be restricted to using the class name textually as the receiver. This would make it a SyntaxError to use `this.#privateMethod()` within a static method, for example. However, this would be a somewhat new kind of way to use scopes for early errors. Unlike var/let conflict early errors, this is much more speculative--the class name might actually be shadowed locally, which the early error would not catch, leading to a TypeError. In the championed semantics, such checks would be expected to be part of a linter or type system instead.
 
@@ -277,22 +366,3 @@ Base.get();  // 'abc'
 ```
 
 Here, explicit references the base class, not the subclass, so issues about access on subclass instances do not occur. A reference like `this.#field` would be an early error, helping to avoid errors by programmers.
-
-## Prototype chain walk for private fields and methods
-
-Ron Buckton [has](https://github.com/tc39/proposal-class-fields/issues/43#issuecomment-348045445) [proposed](https://github.com/tc39/proposal-private-methods/issues/18) that private field and method access could reach up the prototype chain. There are two ways that this could be specified, both of which have significant issues:
-- **Go up the normal prototype chain with \[\[GetPrototypeOf]]**. This would be observable and interceptible by proxies, violating a design goal of private fields that they not be manipulated that way.
-- **Use a separate, parallel, immutable prototype chain**. This alternative would add extra complexity, and break the way that other use of classes consistently works together with runtime mutations in the prototype chain.
-
-A positive aspect of Ron's proposal is that it preserves identical behavior with respect to subclassing as public static fields.
-
-## Switching all fields to being based on accessors
-
-The idea here is to avoid the subclassing overwriting hazard by changing the semantics of all field declarations: Rather than being own properties that are shadowed by a Set on a subclass, they are accessors (getter/setter pairs). In the case of instance fields, the accessor would read or write on the receiver. In the case of static fields, presumably, the read and write would happen on the superclass where they are defined, ignoring the receiver (otherwise, the TypeError issue from private static fields is then ported to public static fields as well, as the subclass constructor would not have its own value!). Private static fields would also follow this accessor pattern. In all cases, the getter would throw a TypeError when the receiver is an object which does not "have" the private field (e.g., its initializer has not run yet), an effectively new TDZ, which could reduce programmer errors.
-
-Some downsides of this proposal:
-- **Public fields would no longer be own properties**. This may be rather confusing for programmers, who may expect features like object spread to include public instance fields.
-- **Does not help implementations and might hurt startup time (maybe)**. This idea was initially proposed as part of a concept for having 'static shape', which could provide more predictability for implementers and programmers. At least on the implementation side, however, there would either have to be checks on each access to see if the field was initialized, or the initialization state would have to show up in its "hidden class". Either way, there's no efficiency gain if the fields are "already there, just in TDZ". In some implementations, startup time could be even worse than with own properties, until the system learns to optimize out the accessors.
-- **Loses the object model--we'd have to start again**. Data properties have an object model permitting non-writable, non-enumerable and non-configurable properties, including its use by `Object.freeze`. If we want to provide these sorts of capabilities to public fields, they would have to be built again separately.
-
-For these reasons, the public fields proposal has been based on own properties.

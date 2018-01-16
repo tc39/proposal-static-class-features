@@ -5,9 +5,9 @@ Champion: Daniel Ehrenberg
 Stage 2
 
 This proposal:
-1. **Adds Public static fields as previously proposed**. Public static fields are own data properties of the constructor in which they are defined, which is evaluated after the class's TDZ has ended.
-1. **Adds lexical declarations in class bodies**. Lexical declarations are prefixed by a contextual keyword to differentiate them from other class elements.
-1. **Does not add private static fields and private static methods**. The use cases presented for private static are met by lexical declarations.
+1. **Adds public static fields** as previously proposed. Public static fields are own data properties of the constructor.
+1. **Adds lexical declarations in class bodies**. Lexical declarations are prefixed by a keyword to differentiate them from methods and fields.
+1. **Does not add private static fields and private static methods**. Lexical declarations are intended to fill static private use cases.
 
 This proposal was created to track the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3. Although lexical declarations are significantly different from the previous proposal of static private methods and fields, 
 
@@ -20,7 +20,7 @@ Like static public methods, static public fields take a common idiom which was p
 ```js
 class CustomDate {
   // ...
-  static epoch = new CustomDate(0)
+  static epoch = new CustomDate(0);
 }
 ```
 
@@ -39,95 +39,11 @@ Declaring static properties in the class body is hoped to be cleaner and doing a
 
 Define an own property on the constructor which is set to the value of the initializer expression. The initializer is evaluated in a scope where the binding of the class is available--unlike in computed property names, the class can be referred to from inside initializers without leading to a ReferenceError.
 
-Alternate semantics are discussed in ["Initializing fields on subclasses"](#initializing-fields-on-subclasses). However, they are not proposed here, for reasons detailed in that section. These semantics are justified in more detail in ["Static field initialization"](#static-field-initialization).
-
-### Why only initialize static fields once
-
-Kevin Gibbons [raised a concern](https://github.com/tc39/proposal-class-fields/issues/43#issuecomment-340517955) that JavaScript programmers may not be used to having objects with mutated properties which are exposed on the prototype chain, the way that static fields are inherited and may be overwritten. Some reasons why this is not that bad:
-- Many JS classes add a property to a constructor after a class definition. A subclass of Number, for example, would make this issue observable.
-- Lots of current educational materials, e.g., by Kyle Simpson and Eric Elliott, explain directly how prototypical inheritance of data properties in JS works to newer programmers.
-- This proposal is more conservative and going with the grain of JS by not adding a new time when code runs for subclassing, preserving identities as you'd expect, etc.
-
-### Semantics in an edge case with Set and inheritance
-
-Example of how these semantics work out with subclassing (this is not a recommended use of constructors as stateful objects, but it shows the semantic edge cases):
-
-```js
-static Counter {
-  static count = 0;
-  static inc() { this.count++; }
-}
-class SubCounter extends Counter { }
-
-Counter.hasOwnProperty("count");  // true
-SubCounter.hasOwnProperty("count");  // false
-
-Counter.count; // 0, own property
-SubCounter.count; // 0, inherited
-
-Counter.inc();  // undefined
-Counter.count;  // 1, own property
-SubCounter.count;  // 1, inherited
-
-// ++ will read up the prototype chain and write an own property
-SubCounter.inc();
-
-Counter.hasOwnProperty("count");  // true
-SubCounter.hasOwnProperty("count");  // true
-
-Counter.count;  // 1, own property
-SubCounter.count;  // 2, own property
-
-Counter.inc(); Counter.inc();
-Counter.count;  // 3, own property
-SubCounter.count;  // 2, own property
-```
-
-### Why not to reinitialize public fields on subclasses
-
-Kevin Gibbons has proposed that class fields have their initialisers re-run on subclasses. This would address the static private subclassing issue by adding those to subclasses as well, leading to no TypeError on use.
-
-With this alternate, the initial counter example would have the following semantics:
-
-```js
-// NOTE: COUTNERFACTUAL SEMANTICS BELOW
-static Counter {
-  static count = 0;
-  static inc() { this.count++; }
-}
-class SubCounter extends Counter { }
-
-Counter.hasOwnProperty("count");  // true
-SubCounter.hasOwnProperty("count");  // true
-
-Counter.count; // 0, own property
-SubCounter.count; // 0, own property
-
-Counter.inc();  // undefined
-Counter.count;  // 1, own property
-SubCounter.count;  // 0, own property
-
-// ++ is just dealing iwth own properties the whole time
-SubCounter.inc();
-
-Counter.hasOwnProperty("count");  // true
-SubCounter.hasOwnProperty("count");  // true
-
-Counter.count;  // 1, own property
-SubCounter.count;  // 1, own property
-
-Counter.inc(); Counter.inc();
-Counter.count;  // 3, own property
-SubCounter.count;  // 1, own property
-```
-
-However, these alternate semantics have certain disadvantages:
-- Subclassing in JS has always been "declarative" so far, not actually executing anything from the superclass. It's really not clear this is the kind of hook we want to add to suddenly execute code here.
-- The use cases that have been presented so far for expecting the reinitialization semantics seem to use subclassing as a sort of way to create a new stateful class (e.g., with its own cache or counter, or copy of some other object). These could be accomplished with a factory function which returns a class, without requiring that this is how static fields work in general for cases that are not asking for this behavior.
+See [ALTERNATIVES.md](https://github.com/tc39/proposal-static-class-features/blob/master/ALTERNATIVES.md#static-fields) for an explanation of some of the edge cases and alternatives considered.
 
 ## Lexically scoped declarations in classes
 
-This proposal adds lexically scoped function, let, const and class declarations in class bodies. To make the syntax intuitively unambiguous, these declarations are prefixed by a yet-to-be-determined keyword. In this explainer, `<placeholder>` is used  in place of a particular token; see [#9](https://github.com/tc39/proposal-static-class-features/issues/9) for discussion of which token should be selected.
+This proposal adds lexically scoped `function`, `let`, `const` and `class` declarations in class bodies. To make the syntax intuitively unambiguous, these declarations are prefixed by a yet-to-be-determined keyword. In this explainer, `<placeholder>` is used in place of a particular token; see [#9](https://github.com/tc39/proposal-static-class-features/issues/9) for discussion of which token should be selected.
 
 ### Use case
 
@@ -137,7 +53,7 @@ Based on the example at [#4](https://github.com/tc39/proposal-static-class-featu
 export class JSDOM {
   #createdBy;
   
-  #registerWithRegistry() {
+  #registerWithRegistry(registry) {
     // ... elided ...
   }
  
@@ -170,20 +86,24 @@ Class bodies already contain a lexical scope, in which the class name is bound t
 
 These lexical bindings add another time when code observably executes. This execution is proposed to tie in with [Brian Terlson and Yehuda Katz's broader proposal for class evaluation order](https://github.com/tc39/tc39-notes/blob/master/es7/2016-05/classevalorder.pdf) as follows:
 - Function declarations (including async functions, generators and async generators) are hoisted up to the top of the class scope, initialized before the `extends` clause is evaluated.
-- `let`, `const` and `class` delarations involve some evaluation. For the same reason as for static field initializers, it is helpful if the class is no longer in TDZ when they are executed. Therefore, the statements are executed interspersed with static field initializers (and possibly [element finalizers](https://github.com/tc39/proposal-decorators/issues/42) from decorators), top-to-bottom. Until they evaluate, the variables defined are in TDZ.
+- `let`, `const` and `class` delarations involve some evaluation. For the same reason as for static field initializers, it is helpful if the class has an initialized binding when they are executed. Therefore, the statements are executed interspersed with static field initializers (and possibly [element finalizers](https://github.com/tc39/proposal-decorators/issues/42) from decorators), top-to-bottom. Until they evaluate, accessing the variable causes a ReferenceError ("temporal dead zone").
+
+The scope of these lexical declarations is the same as the scope of the `extends` clause and computed property names: It is a lexical scope inheriting from outside the class, which includes using `this`, `super`, `await`, `yield` and `arguments`. Further discussion is in [#13](https://github.com/tc39/proposal-static-class-features/issues/13). 
 
 ## No static private fields, methods and accessors
 
-Previously, private static fields and methods were proposed. The original proposal for private static fields and methods was that the constructor object where they were defined would have these as private fields, and no other objects would have it. However, Justin Ridgewell, [pointed out](https://github.com/tc39/proposal-class-fields/issues/43) that this would be unexpectedly through TypeErrors in the case of subclassing.
+Previously, private static fields and methods were proposed. The original proposal for private static fields and methods was that the constructor object where they were defined would have these as private fields, and no other objects would have it. However, Justin Ridgewell, [pointed out](https://github.com/tc39/proposal-class-fields/issues/43) that this would be unexpectedly throw TypeErrors in the case of subclassing.
 
-Lexical declarations enable the known use cases of static private fields and methods. Due to the combination of the hazards of use and the lack of motivation, this proposal posits that static private features are unlikely to be a justified addition in the future.
+Lexical declarations enable the known use cases of static private fields and methods. Between the cost in complexity and counter-intuitive semantics and the lack of motivation, this proposal posits that static private features are unlikely to be a justified addition in the future.
+
+See [ALTERNATIVES.md](https://github.com/tc39/proposal-static-class-features/blob/master/ALTERNATIVES.md#static-private) for an in-depth look at various options that were considered to support static private fields and methods.
 
 ## Public instance methods remain as previously proposed
 
-Lexical declarations can sometimes be used for situations that would otherwise be used for private methods. However, the champion do not plan to withdraw the proposal even if lexically scoped function declarations in classes are accepted by TC39 for the following reasons:
+Lexical declarations can sometimes be used for situations that would otherwise be used for the Stage 3 [private methods and accessors proposal](https://github.com/tc39/proposal-private-methods). However, the champions do not plan to withdraw the proposal even if lexically scoped function declarations in classes are accepted by TC39 for the following reasons:
 - Private methods provide an easy path to refactoring from public to private--no need to rephrase methods or their callsites, just add a # before the definition and usages.
 - Private methods give access to the right `this` value naturally, without using `Function.prototype.call`, which is core to making the refactoring easy.
-- Private methods support super property access, which is a syntax error in function declarations.
+- Private methods support super property access, which is a syntax error in function declarations. It's unclear how lexically scoped declarations could support super property access, as the "home object" would be rather ambiguous--the prototype or the constructor?
 - Private methods are terse and convenient to use, with semantics which is naturally analogous to othre class elements. They should be sufficient for the majority of shared but not exposed behavior in classes.
 - Private methods do not have the TypeError hazards which private static methods have--they are installed in the constructor, so they are present according to the prototype chain of the class hierarchy at the time the instance was constructed.
 
@@ -221,8 +141,14 @@ window.customElements.define('num-counter', Counter);
 
 ## Proposal status
 
+This proposal is at Stage 2. In the November 2017 TC39 meeting, it was [split off](https://github.com/tc39/tc39-notes/blob/master/es8/2017-11/nov-30.md#10iva-continued-inheriting-private-static-class-elements-discussion-and-resolution) from the Stage 3 [class fields](https://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals--this proposal handles the static aspects, while the other proposals handle instance aspects. This proposal will be presented to TC39 in the January 2018 meeting as an update.
+
+Draft specification text is published at [https://tc39.github.io/proposal-static-class-features/].
+
 Static public fields are implemented in Babel and V8 behind a flag, and had test262 tests written (though currently have been removed due to this proposal being at Stage 2).
 
 Lexical declarations in classes do not currently have any implementations or tests.
 
-Alternatives to this proposal are considered in [ALTERNATIVES.md].
+Private methods and accessors are [a separate Stage 3 proposal](https://github.com/tc39/proposal-private-methods).
+
+Alternatives to this proposal are considered in [ALTERNATIVES.md](https://github.com/tc39/proposal-static-class-features/blob/master/ALTERNATIVES.md).
