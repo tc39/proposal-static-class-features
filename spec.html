@@ -23,7 +23,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       `static` MethodDefinition[?Yield, ?Await]
       FieldDefinition[?Yield, ?Await] `;`
       <ins>`static` FieldDefinition[?Yield, ?Await] `;`</ins>
-      <ins>`local` Declaration[?Yield, ?Await]</ins>
+      <ins>`local` HoistableDeclaration[?Yield, ?Await, ~Default]</ins>
       `;`
   </emu-grammar>
 
@@ -56,13 +56,9 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
     1. Return ClassFieldDefinitionEvaluation of |FieldDefinition| with parameter <ins>*false* and</ins> _object_.
   </emu-alg>
 
-  <emu-grammar><ins>ClassElement : `local` Declaration</ins></emu-grammar>
+  <emu-grammar><ins>ClassElement : `local` HoistableDeclaration</ins></emu-grammar>
   <ins class="block"><emu-alg>
-    1. Return a List containing Record {
-         [[Declaration]]: |Declaration|
-         [[Static]]: *true*,
-         [[IsAnonymousFunctionDefinition]]: *false*
-       }.
+    1. Return a new empty List.
   </emu-alg></ins>
 </emu-clause>
 
@@ -104,11 +100,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
     1. Let _fieldRecords_ be the value of _F_'s [[Fields]] internal slot.
     1. For each item _fieldRecord_ in order from _fieldRecords_,
       1. If _fieldRecord_.[[Static]] is *true*, then
-        1. <ins>If _fieldRecord_ has a [[Declaration]] field,</ins>
-          1. <ins>Let _ret_ be the result of evaluating _fieldRecord_.[[Declaration]].</ins>
-          1. <ins>ReturnIfAbrupt(_ret_).</ins>
-        1. <ins>Else,</ins>
-          1. Perform ? DefineField(_F_, _fieldRecord_).
+        1. Perform ? DefineField(_F_, _fieldRecord_).
     1. Return.
   </emu-alg>
 </emu-clause>
@@ -160,9 +152,9 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       <emu-alg>
         1. Return a new empty List.
       </emu-alg>
-      <emu-grammar>ClassElement : `local` Declaration</emu-grammar>
+      <emu-grammar>ClassElement : `local` HoistableDeclaration</emu-grammar>
       <emu-alg>
-        1. Return a new List containing DeclarationPart of |Declaration|.
+        1. Return a new List containing DeclarationPart of |HoistableDeclaration|.
       </emu-alg>
     </emu-clause>
 
