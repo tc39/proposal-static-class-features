@@ -43,7 +43,7 @@ See [ALTERNATIVES.md](https://github.com/tc39/proposal-static-class-features/blo
 
 ## Lexically scoped declarations in classes
 
-This proposal adds lexically scoped `function`, `let`, `const` and `class` declarations in class bodies. To make the syntax intuitively unambiguous, these declarations are prefixed by a yet-to-be-determined keyword. In this explainer, `<placeholder>` is used in place of a particular token; see [#9](https://github.com/tc39/proposal-static-class-features/issues/9) for discussion of which token should be selected.
+This proposal adds lexically scoped `function`, `let`, `const` and `class` declarations in class bodies. To make the syntax intuitively unambiguous, these declarations are prefixed by a yet-to-be-determined keyword. In this explainer, `local` is used in place of a particular token; see [#9](https://github.com/tc39/proposal-static-class-features/issues/9) for discussion of which token should be selected.
 
 ### Use case
 
@@ -69,8 +69,8 @@ export class JSDOM {
     return finalizeFactoryCreated(body, options, "fromFile");
   }
   
-  <placeholder> const registry = new JSDOMRegistry();
-  <placeholder> function finalizeFactoryCreated(body, options, factoryName) {
+  local const registry = new JSDOMRegistry();
+  local function finalizeFactoryCreated(body, options, factoryName) {
     normalizeOptions(options);
     let jsdom = new JSDOM(body, options):
     jsdom.#createdBy = factoryName;
