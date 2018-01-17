@@ -41,15 +41,16 @@ Define an own property on the constructor which is set to the value of the initi
 
 See [ALTERNATIVES.md](https://github.com/tc39/proposal-static-class-features/blob/master/ALTERNATIVES.md#static-fields) for an explanation of some of the edge cases and alternatives considered.
 
-## Lexically scoped declarations in classes
+## Function scoped declarations in classes
 
-This proposal adds lexically scoped `function`, `let`, `const` and `class` declarations in class bodies. To make the syntax intuitively unambiguous, these declarations are prefixed by a yet-to-be-determined keyword. In this explainer, `local` is used in place of a particular token; see [#9](https://github.com/tc39/proposal-static-class-features/issues/9) for discussion of which token should be selected.
+This proposal adds lexically scoped `function` declarations (including async functions and generators) in class bodies. To make the syntax intuitively unambiguous, these declarations are prefixed by a yet-to-be-determined keyword. In this explainer, `local` is used in place of a particular token; see [#9](https://github.com/tc39/proposal-static-class-features/issues/9) for discussion of which token should be selected.
 
 ### Use case
 
 Based on the example at [#4](https://github.com/tc39/proposal-static-class-features/issues/4) by Domenic Denicola:
 
 ```js
+const registry = new JSDOMRegistry();
 export class JSDOM {
   #createdBy;
   
@@ -69,7 +70,6 @@ export class JSDOM {
     return finalizeFactoryCreated(body, options, "fromFile");
   }
   
-  local const registry = new JSDOMRegistry();
   local function finalizeFactoryCreated(body, options, factoryName) {
     normalizeOptions(options);
     let jsdom = new JSDOM(body, options):
@@ -82,13 +82,15 @@ export class JSDOM {
 
 ### Semantics
 
-Class bodies already contain a lexical scope, in which the class name is bound to the value of the class. In this same lexical scope, this feature adds additional bindings.
+Class bodies already contain a lexical scope, in which the class name is bound to the value of the class. In this same lexical scope, this feature adds additional bindings. Function declarations (including async functions, generators and async generators) are hoisted up to the top of the class scope, initialized before the `extends` clause is evaluated. They are defined within this scope, and able to access private instance fields and be accessed by private methods.
 
-These lexical bindings add another time when code observably executes. This execution is proposed to tie in with [Brian Terlson and Yehuda Katz's broader proposal for class evaluation order](https://github.com/tc39/tc39-notes/blob/master/es7/2016-05/classevalorder.pdf) as follows:
-- Function declarations (including async functions, generators and async generators) are hoisted up to the top of the class scope, initialized before the `extends` clause is evaluated.
-- `let`, `const` and `class` delarations involve some evaluation. For the same reason as for static field initializers, it is helpful if the class has an initialized binding when they are executed. Therefore, the statements are executed interspersed with static field initializers (and possibly [element finalizers](https://github.com/tc39/proposal-decorators/issues/42) from decorators), top-to-bottom. Until they evaluate, accessing the variable causes a ReferenceError ("temporal dead zone").
+### Omitting other lexically declared forms
 
-The scope of these lexical declarations is the same as the scope of the `extends` clause and computed property names: It is a lexical scope inheriting from outside the class, which includes using `this`, `super`, `await`, `yield` and `arguments`. Further discussion is in [#13](https://github.com/tc39/proposal-static-class-features/issues/13). 
+`let`, `class` and `const` declarations add another time when code observably executes. This execution would need to tie in with [Brian Terlson and Yehuda Katz's broader proposal for class evaluation order](https://github.com/tc39/tc39-notes/blob/master/es7/2016-05/classevalorder.pdf). For the same reason as for static field initializers, it is helpful if the class has an initialized binding when they are executed. Therefore, it would seem logical to execute the statements interspersed with static field initializers (and possibly [element finalizers](https://github.com/tc39/proposal-decorators/issues/42) from decorators), top-to-bottom. Until they evaluate, accessing the variable causes a ReferenceError ("temporal dead zone"). It's unclear, however, how this top-to-bottom initialization order [would be integrated](https://github.com/tc39/proposal-decorators/issues/44) with the decorators proposal.
+
+The scope of these lexical declarations would also be observable in potentially confusing ways. If we use typical lexical scoping rules, it would be the same as the scope of the `extends` clause and computed property names: It is a lexical scope inheriting from outside the class, which includes using `this`, `super`, `await`, `yield` and `arguments`. These features are hidden by function declarations, avoiding the issue. Further discussion is in [#13](https://github.com/tc39/proposal-static-class-features/issues/13).
+
+Finally, the most important use cases that we were able to identify in the development of this proposal were instances of procuedural decomposition. This is typically represented by functions. Although it's possible to write code which would take advantage of the other declarations, it's unclear whether these needs are worth the complexity of the above two issues.
 
 ## No static private fields, methods and accessors
 
@@ -102,7 +104,7 @@ See [ALTERNATIVES.md](https://github.com/tc39/proposal-static-class-features/blo
 
 Lexical declarations can sometimes be used for situations that would otherwise be used for the Stage 3 [private methods and accessors proposal](https://github.com/tc39/proposal-private-methods). However, the champions do not plan to withdraw the proposal even if lexically scoped function declarations in classes are accepted by TC39 for the following reasons:
 - Private methods provide an easy path to refactoring from public to private--no need to rephrase methods or their callsites, just add a # before the definition and usages.
-- Private methods give access to the right `this` value naturally, without using `Function.prototype.call`, which is core to making the refactoring easy.
+- Private methods give access to the right `this` value naturally, without using `Function.prototype.call`, which is core to making the refactoring easy. Many programmers feel comfortable programming JavaScript in an object-oriented style, which private methods support.
 - Private methods support super property access, which is a syntax error in function declarations. It's unclear how lexically scoped declarations could support super property access, as the "home object" would be rather ambiguous--the prototype or the constructor?
 - Private methods are terse and convenient to use, with semantics which is naturally analogous to othre class elements. They should be sufficient for the majority of shared but not exposed behavior in classes.
 - Private methods do not have the TypeError hazards which private static methods have--they are installed in the constructor, so they are present according to the prototype chain of the class hierarchy at the time the instance was constructed.
