@@ -23,7 +23,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       `static` MethodDefinition[?Yield, ?Await]
       FieldDefinition[?Yield, ?Await] `;`
       <ins>`static` FieldDefinition[?Yield, ?Await] `;`</ins>
-      <ins>`&lt;placeholder>` Declaration[?Yield, ?Await]</ins>
+      <ins>`local` Declaration[?Yield, ?Await]</ins>
       `;`
   </emu-grammar>
 
@@ -56,7 +56,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
     1. Return ClassFieldDefinitionEvaluation of |FieldDefinition| with parameter <ins>*false* and</ins> _object_.
   </emu-alg>
 
-  <emu-grammar><ins>ClassElement : `&lt;placeholder>` Declaration</ins></emu-grammar>
+  <emu-grammar><ins>ClassElement : `local` Declaration</ins></emu-grammar>
   <ins class="block"><emu-alg>
     1. Return a List containing Record {
          [[Declaration]]: |Declaration|
@@ -160,7 +160,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       <emu-alg>
         1. Return a new empty List.
       </emu-alg>
-      <emu-grammar>ClassElement : `&lt;placeholder&gt;` Declaration</emu-grammar>
+      <emu-grammar>ClassElement : `local` Declaration</emu-grammar>
       <emu-alg>
         1. Return a new List containing DeclarationPart of |Declaration|.
       </emu-alg>
