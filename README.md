@@ -58,7 +58,7 @@ export class JSDOM {
     // ... elided ...
   }
  
-  async static fromURL(url, options = {}) {
+  static async fromURL(url, options = {}) {
     url = normalizeFromURLOptions(url, options);
     
     const body = await getBodyFromURL(url);
