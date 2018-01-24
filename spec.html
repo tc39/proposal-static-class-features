@@ -174,7 +174,6 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       1. If |ClassBody_opt| is present, then
         1. For each element _dn_ of the PrivateBoundNames of |ClassBody_opt|,
           1. Perform _classPrivateEnvRec_.CreateImmutableBinding(_dn_, *true*).
-      1. <ins>Perform ! BlockDeclarationInstantiation(|ClassBody|, _classScopeEnvRec_).</ins>
       1. If |ClassHeritage_opt| is not present, then
         1. Let _protoParent_ be the intrinsic object %ObjectPrototype%.
         1. Let _constructorParent_ be the intrinsic object %FunctionPrototype%.
@@ -204,7 +203,10 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
           1. Let _constructor_ be the result of parsing the source text
             <pre><code class="javascript">constructor( ){ }</code></pre>
             using the syntactic grammar with the goal symbol |MethodDefinition[~Yield]|.
-      1. Set the running execution context's LexicalEnvironment to _classScope_.
+      1. <ins>Let _classBodyScope_ be new DeclarativeEnvironment(_classScope_).</ins>
+      1. <ins>Let _classBodyScopeEnvRec_ be _classBodyScope_'s EnvironmentRecord.</ins>
+      1. <ins>Perform ! BlockDeclarationInstantiation(|ClassBody|, _classScopeBodyEnvRec_).</ins>
+      1. Set the running execution context's LexicalEnvironment to <del>_classScope_</del><ins>_classBodyScope_</ins>.
       1. Set the running execution context's PrivateNameEnvironment to _classPrivateEnvironment_.
       1. Let _constructorInfo_ be the result of performing DefineMethod for _constructor_ with arguments _proto_ and _constructorParent_ as the optional _functionPrototype_ argument.
       1. Assert: _constructorInfo_ is not an abrupt completion.
