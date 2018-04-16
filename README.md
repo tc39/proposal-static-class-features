@@ -1,6 +1,6 @@
 # Static public fields
 
-Champion: Daniel Ehrenberg
+Champions: Shu-Yu Guo, Daniel Ehrenberg
 
 Stage 2
 
