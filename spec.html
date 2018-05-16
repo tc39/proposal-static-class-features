@@ -52,9 +52,9 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
 <emu-clause id="sec-method-definitions-runtime-semantics-classelementevaluation" aoid=ClassElementEvaluation>
   <h1>Runtime Semantics: ClassElementEvaluation</h1>
   <p>With parameters _homeObject_, _enumerable_ and _placement_.</p>
-  <emu-grammar>ClassElement : `static` FieldDefinitionList `;`</emu-grammar>
+  <emu-grammar>ClassElement : `static` FieldDefinition `;`</emu-grammar>
   <emu-alg>
-    1. Return ClassFieldDefinitionEvaluation of FieldDefinitionList with parameters `"static"` and _homeObject_.
+    1. Return ClassFieldDefinitionEvaluation of FieldDefinition with parameters `"static"` and _homeObject_.
   </emu-alg>
 </emu-clause>
 
