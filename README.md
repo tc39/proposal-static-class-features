@@ -1,8 +1,8 @@
 # Static class features
 
-Champions: Shu-Yu Guo, Daniel Ehrenberg
+Champions: Shu-yu Guo, Daniel Ehrenberg
 
-Stage 2
+Stage 3
 
 This proposal adds three features to JavaScript classes, building on the previous [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals:
 - Static public fields
