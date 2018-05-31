@@ -117,10 +117,10 @@ This proposal is designed to be compatible with several possible follow-on propo
 
 ## Proposal status
 
-This proposal is at Stage 2.
+This proposal is at Stage 3.
 
-This proposal was created to track the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals, namely static public fields, static private fields, and static private methods. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3.
+This proposal was created to track the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals, namely static public fields, static private fields, and static private methods. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3. In the May 2018 TC39 meeting, this proposal was promoted to Stage 3.
 
 Draft specification text is published at [https://tc39.github.io/proposal-static-class-features/].
 
-Static public fields are implemented in Babel and V8 behind a flag, and had test262 tests written (though currently have been removed due to this proposal being at Stage 2).
+Static public fields are implemented in Babel and V8 behind a flag, and had test262 tests written (though currently have been removed when this proposal was demoted to Stage 2). Static private fields are currently [underway in Babel](https://github.com/babel/babel/issues/8052).
