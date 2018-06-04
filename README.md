@@ -100,6 +100,7 @@ class ColorFinder {
   
   static colorName(name) {
     switch (name) {
+      // NOTE: Using this.#red would throw if colorName were called via a subclass.
       case "red": return ColorFinder.#red;
       case "blue": return ColorFinder.#blue;
       case "green": return ColorFinder.#green;
