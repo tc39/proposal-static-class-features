@@ -45,7 +45,7 @@ See [STATICPUBLIC.md](https://github.com/tc39/proposal-static-class-features/blo
 
 ### Semantics
 
-The class has an own private method, similar to private instance methods. Conceptually, private fields and methods can be thought of as being based on a WeakMap mapping objects to values; here, the WeakMap has just one key, which is the constructor where the private method was declared. This method is not installed on subclasses, which means that calling a static private method with a subclass as the receiver will lead to a TypeError. For the reasons in ["Static private access on subclasses"](#static-private-access-on-subclasses), the champion considers this not to be a significant problem.
+The class has an own private method, similar to private instance methods. Conceptually, private fields and methods can be thought of as being based on a WeakMap mapping objects to values; here, the WeakMap has just one key, which is the constructor where the private method was declared. This method is not installed on subclasses, which means that calling a static private method with a subclass as the receiver will lead to a TypeError. For the reasons in [the STATICPRIVATE.md document](https://github.com/tc39/proposal-static-class-features/blob/master/STATICPRIVATE.md), the champion considers this not to be a significant problem.
 
 ### Use case
 
