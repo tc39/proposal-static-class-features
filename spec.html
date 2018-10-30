@@ -82,26 +82,3 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
   </emu-alg>
   <emu-note type=editor>Value properties are added before initializers so that all methods are visible from all initializers</emu-note>
 </emu-clause>
-
-<emu-clause id="initialize-public-instance-fields">
-  <h1>InitializeInstanceFields ( _O_, _constructor_ )</h1>
-
-  <emu-alg>
-    1. Assert: Type ( _O_ ) is Object.
-    1. Assert: Assert _constructor_ is an ECMAScript function object.
-    1. Let _fieldRecords_ be the value of _constructor_'s [[Fields]] internal slot.
-    1. For each item _fieldRecord_ in order from _fieldRecords_,
-      1. <ins>If _fieldRecord_.[[Static]] is *false*, then</ins>
-        1. Perform ? DefineField(_O_, _fieldRecord_).
-    1. Return.
-  </emu-alg>
-
-  <emu-clause id="static-semantics-is-static">
-    <h1>Static Semantics: IsStatic</h1>
-
-      <emu-grammar>ClassElement : `static` FieldDefinition</emu-grammar>
-      <emu-alg>
-        1. Return *true*.
-      </emu-alg>
-  </emu-clause>
-</emu-clause>
