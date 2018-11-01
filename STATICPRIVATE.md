@@ -17,7 +17,7 @@ As with static public fields, the initializer is evaluated in a scope where the 
 Justin Ridgewell [expressed concern](https://github.com/tc39/proposal-class-fields/issues/43) about the TypeError that results from static private field access from subclasses. Here's an example of that TypeError, which occurs when code ported from the above static public fields example is switched to private fields:
 
 ```js
-static Counter {
+class Counter {
   static #count = 0;
   static inc() { this.#count++; }
   static get count() { return this.#count; }

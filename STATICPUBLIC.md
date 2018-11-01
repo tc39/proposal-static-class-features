@@ -14,7 +14,7 @@ Kevin Gibbons [raised a concern](https://github.com/tc39/proposal-class-fields/i
 Example of how these semantics work out with subclassing (this is not a recommended use of constructors as stateful objects, but it shows the semantic edge cases):
 
 ```js
-static Counter {
+class Counter {
   static count = 0;
   static inc() { this.count++; }
 }
@@ -51,8 +51,8 @@ Kevin Gibbons has proposed that class fields have their initialisers re-run on s
 With this alternate, the initial counter example would have the following semantics:
 
 ```js
-// NOTE: COUTNERFACTUAL SEMANTICS BELOW
-static Counter {
+// NOTE: COUNTERFACTUAL SEMANTICS BELOW
+class Counter {
   static count = 0;
   static inc() { this.count++; }
 }
