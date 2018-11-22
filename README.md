@@ -45,11 +45,11 @@ See [STATICPUBLIC.md](https://github.com/tc39/proposal-static-class-features/blo
 
 ### Semantics
 
-The class has an own private method, similar to private instance methods. Conceptually, private fields and methods can be thought of as being based on a WeakMap mapping objects to values; here, the WeakMap has just one key, which is the constructor where the private method was declared. This method is not installed on subclasses, which means that calling a static private method with a subclass as the receiver will lead to a TypeError. For the reasons in [the STATICPRIVATE.md document](https://github.com/tc39/proposal-static-class-features/blob/master/STATICPRIVATE.md), the champion considers this not to be a significant problem.
+The class has an own private method, similar to private instance methods. Conceptually, private fields and methods can be thought of as being based on a WeakMap mapping, objects to values; here, the WeakMap has just one key, which is the constructor where the private method was declared. This method is not installed on subclasses, which means that calling a static private method with a subclass as the receiver will lead to a TypeError. For the reasons in [the STATICPRIVATE.md document](https://github.com/tc39/proposal-static-class-features/blob/master/STATICPRIVATE.md), the champion considers this not to be a significant problem.
 
 ### Use case
 
-Static private methods can be useful whenever there is shared behavior to extract into a function which uses private fields, but which doesn't work cleanly as an instance method. For example, multiple factory static methods may share part of their implementation, including parts which run both before and after construction of the instance. See [#4](https://github.com/tc39/proposal-static-class-features/issues/4) for more context about the following example.
+Static private methods can be useful whenever there is shared behavior to extract into a function which uses private fields, but which doesn't work cleanly as an instance method. For example, multiple factory static methods may share part of their implementation, including parts which run both before and after the construction of the instance. See [#4](https://github.com/tc39/proposal-static-class-features/issues/4) for more context about the following example.
 
 ```js
 export const registry = new JSDOMRegistry();
@@ -123,4 +123,4 @@ This proposal was created to track the "static" (i.e., of the constructor) aspec
 
 Draft specification text is published at [https://tc39.github.io/proposal-static-class-features/].
 
-Static public fields are implemented in Babel and V8 behind a flag, and had test262 tests written (though currently have been removed when this proposal was demoted to Stage 2). Static private fields are currently [underway in Babel](https://github.com/babel/babel/issues/8052).
+Static public fields are implemented in Babel and V8 behind a flag and had test262 tests written (though currently have been removed when this proposal was demoted to Stage 2). Static private fields are currently [underway in Babel](https://github.com/babel/babel/issues/8052).
