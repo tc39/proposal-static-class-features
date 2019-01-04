@@ -100,7 +100,6 @@ class ColorFinder {
   
   static colorName(name) {
     switch (name) {
-      // NOTE: Using this.#red would throw if colorName were called via a subclass.
       case "red": return ColorFinder.#red;
       case "blue": return ColorFinder.#blue;
       case "green": return ColorFinder.#green;
@@ -111,6 +110,8 @@ class ColorFinder {
   // Somehow use colorName
 }
 ```
+
+Note that the intended use is to access private static fields on the class *by name*, rather than via `this`: since the fields are not installed on subclasses, writing `this.#red` in the previous example would throw a TypeError when calling colorName on a subclass of ColorFinder without overriding the implementation.
 
 ## Follow-on proposals
 
