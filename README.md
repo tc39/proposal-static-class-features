@@ -69,7 +69,7 @@ export class JSDOM {
     return JSDOM.#finalizeFactoryCreated(new JSDOM(body, options), "fromURL");
   }
   
-  static fromFile(filename, options = {}) {
+  async static fromFile(filename, options = {}) {
     normalizeOptions(options);
     
     const body = await getBodyFromFilename(filename);
