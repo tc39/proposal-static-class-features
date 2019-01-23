@@ -40,7 +40,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       <del>ClassElement : `static` MethodDefinition</del>
     </emu-grammar>
     <ul>
-      <li><del>It is a Syntax Error if PrivateBoundNames of |MethodDefinition| is non-empty.</del></li>
+      <li><del>It is a Syntax Error if PrivateBoundIdentifiers of |MethodDefinition| is non-empty.</del></li>
     </ul>
 
     <emu-note type="editor">Removing this early error enables static private methods.</emu-note>
@@ -70,18 +70,18 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       1. Let _classScopeEnvRec_ be _classScope_'s EnvironmentRecord.
       1. If _className_ is not *undefined*, then
         1. Perform _classScopeEnvRec_.CreateImmutableBinding(_className_, *true*).
-      1. Let _outerPrivateEnvironment_ be the PrivateNameEnvironment of the running execution context.
+      1. Let _outerPrivateEnvironment_ be the PrivateEnvironment of the running execution context.
       1. Let _classPrivateEnvironment_ be NewDeclarativeEnvironment(_outerPrivateEnvironment_).
       1. Let _classPrivateEnvRec_ be _classPrivateEnvironment_'s EnvironmentRecord.
       1. If |ClassBody_opt| is present, then
-        1. For each element _dn_ of the PrivateBoundNames of |ClassBody_opt|,
+        1. For each element _dn_ of the PrivateBoundIdentifiers of |ClassBody_opt|,
           1. Perform _classPrivateEnvRec_.CreateImmutableBinding(_dn_, *true*).
       1. If |ClassHeritage_opt| is not present, then
         1. Let _protoParent_ be the intrinsic object %ObjectPrototype%.
         1. Let _constructorParent_ be the intrinsic object %FunctionPrototype%.
       1. Else,
         1. Set the running execution context's LexicalEnvironment to _classScope_.
-        1. NOTE: The running execution context's PrivateNameEnvironment is _outerPrivateEnvironment_ when evaluating |ClassHeritage|.
+        1. NOTE: The running execution context's PrivateEnvironment is _outerPrivateEnvironment_ when evaluating |ClassHeritage|.
         1. Let _superclass_ be the result of evaluating |ClassHeritage|.
         1. Set the running execution context's LexicalEnvironment to _lex_.
         1. ReturnIfAbrupt(_superclass_).
@@ -106,7 +106,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
             <pre><code class="javascript">constructor( ){ }</code></pre>
             using the syntactic grammar with the goal symbol |MethodDefinition[~Yield]|.
       1. Set the running execution context's LexicalEnvironment to _classScope_.
-      1. Set the running execution context's PrivateNameEnvironment to _classPrivateEnvironment_.
+      1. Set the running execution context's PrivateEnvironment to _classPrivateEnvironment_.
       1. Let _constructorInfo_ be the result of performing DefineMethod for _constructor_ with arguments _proto_ and _constructorParent_ as the optional _functionPrototype_ argument.
       1. Assert: _constructorInfo_ is not an abrupt completion.
       1. Let _F_ be _constructorInfo_.[[Closure]].
@@ -125,7 +125,7 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
           1. Let _field_ be the result of performing PropertyDefinitionEvaluation for _m_ClassElementEvaluation for _e_ with arguments _F_ and *false*.
         1. If _field_ is an abrupt completion, then
           1. Set the running execution context's LexicalEnvironment to _lex_.
-          1. Set the running execution context's PrivateNameEnvironment to _outerPrivateEnvironment_.
+          1. Set the running execution context's PrivateEnvironment to _outerPrivateEnvironment_.
           1. Return Completion(_field_).
         1. If _field_ is not ~empty~,
           1. <ins>If IsStatic of _e_ is *false*,</ins> append _field_ to _instanceFields_.
@@ -134,13 +134,13 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       1. If _className_ is not *undefined*, then
         1. Perform _classScopeEnvRec_.InitializeBinding(_className_, _F_).
       1. Set _F_.[[Fields]] to _instanceFields_.
-      1. If PrivateBoundNames of |ClassBody| contains a Private Name _P_ such that the [[Type]] field of _P_'s [[Descriptor]] is either ~method~ or ~accessor~ <ins>and the [[PrivateBrand]] field of _P_'s [[Descriptor]] is _proto_</ins>,
+      1. If PrivateBoundIdentifiers of |ClassBody| contains a Private Name _P_ such that the [[Kind]] field of _P_'s [[Attributes]] is either ~method~ or ~accessor~ <ins>and the [[Brand]] field of _P_'s [Attributes]] is _proto_</ins>,
         1. Set _F_.[[PrivateBrand]] to _proto_.
-      1. <ins>If PrivateBoundNames of |ClassBody| contains a Private Name _P_ such that the [[Type]] field of _P_'s [[Descriptor]] is either ~method~ or ~accessor~ and the [[PrivateBrand]] field of _P_'s [[Descriptor]] is _F_</ins>,
+      1. <ins>If PrivateBoundIdentifiers of |ClassBody| contains a Private Name _P_ such that the [[Kind]] field of _P_'s [[Attributes]] is either ~method~ or ~accessor~ and the [[Brand]] field of _P_'s [[Attributes]] is _F_</ins>,
         1. <ins>PrivateBrandAdd(_F_, _F_).</ins>
       1. <ins>For each item _fieldRecord_ in order from _staticFields_,</ins>
         1. <ins>Perform ? DefineField(_F_, _field_).</ins>
-      1. Set the running execution context's PrivateNameEnvironment to _outerPrivateEnvironment_.
+      1. Set the running execution context's PrivateEnvironment to _outerPrivateEnvironment_.
       1. Return _F_.
     </emu-alg>
   </emu-clause>
