@@ -134,9 +134,9 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       1. If _className_ is not *undefined*, then
         1. Perform _classScopeEnvRec_.InitializeBinding(_className_, _F_).
       1. Set _F_.[[Fields]] to _instanceFields_.
-      1. If PrivateBoundIdentifiers of |ClassBody| contains a Private Name _P_ such that the [[Kind]] field of _P_'s [[Attributes]] is either ~method~ or ~accessor~ <ins>and the [[Brand]] field of _P_'s [Attributes]] is _proto_</ins>,
+      1. If PrivateBoundIdentifiers of |ClassBody| contains a Private Name _P_ such that _P_'s [[Kind]] field is either ~method~ or ~accessor~ <ins>and _P_'s [[Brand]] field is _proto_</ins>,
         1. Set _F_.[[PrivateBrand]] to _proto_.
-      1. <ins>If PrivateBoundIdentifiers of |ClassBody| contains a Private Name _P_ such that the [[Kind]] field of _P_'s [[Attributes]] is either ~method~ or ~accessor~ and the [[Brand]] field of _P_'s [[Attributes]] is _F_</ins>,
+      1. <ins>If PrivateBoundIdentifiers of |ClassBody| contains a Private Name _P_ such that _P_'s [[Kind]] field is either ~method~ or ~accessor~ and _P_'s [[Brand]] is _F_</ins>,
         1. <ins>PrivateBrandAdd(_F_, _F_).</ins>
       1. <ins>For each item _fieldRecord_ in order from _staticFields_,</ins>
         1. <ins>Perform ? DefineField(_F_, _field_).</ins>
