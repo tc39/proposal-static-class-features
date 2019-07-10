@@ -95,8 +95,8 @@ The class has an own private field, similar to private instance fields. This fie
 ```js
 class ColorFinder {
   static #red = "#ff0000";
-  static #blue = "#00ff00";
-  static #green = "#0000ff";
+  static #green = "#00ff00";
+  static #blue = "#0000ff";
   
   static colorName(name) {
     switch (name) {
