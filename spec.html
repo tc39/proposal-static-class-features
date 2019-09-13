@@ -76,6 +76,8 @@ contributors: Daniel Ehrenberg, Jeff Morrison, Kevin Smith, Kevin Gibbons
       1. If |ClassBody_opt| is present, then
         1. For each element _dn_ of the PrivateBoundNames of |ClassBody_opt|,
           1. Perform _classPrivateEnvRec_.CreateImmutableBinding(_dn_, *true*).
+          1. Let _privateName_ be NewPrivateName(_dn_).
+          1. Perform ! _classPrivateEnvRec_.InitializeBinding(_dn_, _dn_).
       1. If |ClassHeritage_opt| is not present, then
         1. Let _protoParent_ be the intrinsic object %ObjectPrototype%.
         1. Let _constructorParent_ be the intrinsic object %FunctionPrototype%.
