@@ -9,6 +9,24 @@ This proposal adds three features to JavaScript classes, building on the previou
 - Static private methods
 - Static private fields
 
+## Current status
+
+This proposal is at Stage 3.
+
+This proposal was created to track the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals, namely static public fields, static private fields, and static private methods. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3. In the May 2018 TC39 meeting, this proposal was promoted to Stage 3.
+
+Draft specification text is published at [https://tc39.github.io/proposal-static-class-features/].
+
+This proposal is stable and with a variaty of implementations shipped.
+
+|Implementation|Status|
+|---|---|
+|Babel|[Babel 7.4](https://babeljs.io/blog/2019/03/19/7.4.0#static-private-methods-9446-https-githubcom-babel-babel-pull-9446) shipped Private Static Methods<br>[Babel 7.6](https://babeljs.io/blog/2019/09/05/7.6.0#private-static-accessors-getters-and-setters-10217-https-githubcom-babel-babel-pull-10217) shipped Private Static Accessors|
+|Moddable XS|[XS](https://blog.moddable.com/blog/secureprivate/) shipped full implementation|
+|QuickJS|[QuickJS](https://www.freelists.org/post/quickjs-devel/New-release,82) shipped full implementation|
+|Chrome|_In progress:_ [Fully implemented behind flag](https://bugs.chromium.org/p/v8/issues/detail?id=8330)|
+|Safari|_In progress:_ In review in this [patch](https://bugs.webkit.org/show_bug.cgi?id=194095)|
+
 ## Static public fields
 
 ### Motivation
@@ -116,13 +134,3 @@ Note that the intended use is to access private static fields on the class *by n
 ## Follow-on proposals
 
 This proposal is designed to be compatible with several possible follow-on proposals, which are documented at [FOLLOWONS.md](https://github.com/tc39/proposal-static-class-features/blob/master/FOLLOWONS.md).
-
-## Proposal status
-
-This proposal is at Stage 3.
-
-This proposal was created to track the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals, namely static public fields, static private fields, and static private methods. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3. In the May 2018 TC39 meeting, this proposal was promoted to Stage 3.
-
-Draft specification text is published at [https://tc39.github.io/proposal-static-class-features/].
-
-Static public fields are implemented in Babel and V8 behind a flag, and had test262 tests written (though currently have been removed when this proposal was demoted to Stage 2). Static private fields are currently [underway in Babel](https://github.com/babel/babel/issues/8052).
