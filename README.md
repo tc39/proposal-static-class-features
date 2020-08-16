@@ -21,7 +21,7 @@ This proposal is stable and with a variaty of implementations shipped.
 
 |Implementation|Status|
 |---|---|
-|Babel|[Babel 7.4](https://babeljs.io/blog/2019/03/19/7.4.0#static-private-methods-9446-https-githubcom-babel-babel-pull-9446) shipped Private Static Methods<br>[Babel 7.6](https://babeljs.io/blog/2019/09/05/7.6.0#private-static-accessors-getters-and-setters-10217-https-githubcom-babel-babel-pull-10217) shipped Private Static Accessors|
+|Babel|[Babel 7.1](https://babeljs.io/blog/2018/09/17/7.1.0#private-static-fields-stage-3) shipped Private Static Fields<br>[Babel 7.4](https://babeljs.io/blog/2019/03/19/7.4.0#static-private-methods-9446-https-githubcom-babel-babel-pull-9446) shipped Private Static Methods<br>[Babel 7.6](https://babeljs.io/blog/2019/09/05/7.6.0#private-static-accessors-getters-and-setters-10217-https-githubcom-babel-babel-pull-10217) shipped Private Static Accessors|
 |Moddable XS|[XS](https://blog.moddable.com/blog/secureprivate/) shipped full implementation|
 |QuickJS|[QuickJS](https://www.freelists.org/post/quickjs-devel/New-release,82) shipped full implementation|
 |Chrome| Full implementation [shipping](https://www.chromestatus.com/feature/6001727933251584) |
