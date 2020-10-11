@@ -100,3 +100,39 @@ For these reasons, the public fields proposal has been based on own properties.
 ## Accessor-like semantics only for static fields
 
 Justin Ridgewell [proposed](https://github.com/tc39/proposal-static-class-features/issues/24) accessor-like semantics for static fields, with own property semantics for instance fields. In addition to the downsides listed in the previous section, this creates a new inconsistency between static and instance, where they are otherwise generally analogous.
+
+## Edge cases with built-in properties
+
+Due to public static fields being ordinary data properties of a constructor function there are edge cases with names occupied by  built-in properties of the [`Function`](https://tc39.es/ecma262/#sec-ecmascript-function-objects) object. For example users may attempt to declare `static` class fields
+
+1. [`constructor` or `prototype`](https://tc39.es/ecma262/#sec-makeconstructor),
+1. [`name`](https://tc39.es/ecma262/#sec-setfunctionname) or [`length`](https://tc39.es/ecma262/#sec-setfunctionlength),
+1. [`arguments` or `caller`](https://tc39.es/ecma262/#sec-addrestrictedfunctionproperties).
+
+With respect to these and static public fields/methods the following is worth to note:
+
+1. `static constructor` or `static prototype` produce [early errors](https://tc39.es/ecma262/#sec-class-definitions-static-semantics-early-errors) (see the [Note at Static Semantics: Constructor Method](https://tc39.es/ecma262/#sec-static-semantics-constructormethod))
+1. `static name` or `static length`, if present in the class body, will be created with [`CreateDataProperty`](https://tc39.es/ecma262/#sec-createdataproperty) which results in a PropertyDescriptor
+   ~~~
+   { [[Value]]: V, [[Writable]]: true, [[Enumerable]]: true, [[Configurable]]: true }
+   ~~~
+   Otherwise, and only then, they are created and initialized implicitely by the runtime with [`SetFunctionName`](https://tc39.es/ecma262/#sec-setfunctionname) or [`SetFunctionLength`](https://tc39.es/ecma262/#sec-setfunctionlength) which results in a different PropertyDescriptor
+   ~~~
+   { [[Value]]: name, [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }
+   ~~~
+   The practical implications are that for `class MyClass {...}`
+   -  `MyClass.name` / `MyClass.length` are writable by an assignment expression only if `MyClass` *has* a class body with a `static name` / `static length` class field
+
+   - `MyClass.name` is initialized with the class name *if and only if* the class *has not* a body with a public `static name` field
+
+   - `MyClass.length` is initialized *if and only if* the class *has not* a body with a public `static length` field
+
+
+1. `arguments` and `caller` aren't properties of a constructor function derived from the  `class` keyword. Hence, there is no conflict when those are declared as public static class fields or methods *by the spec*.
+
+   When using transpilers to "downlevel" `class MyClass {...}` syntax to pre ES2015 syntax, they *may* produce output using ordinary `function MyClass {}` syntax in which case `MyClass` *will have* `arguments` and `caller` properties at runtime, each with a property descriptor
+
+   ~~~
+   { [[Get]]: thrower, [[Set]]: thrower, [[Enumerable]]: false, [[Configurable]]: true }
+   ~~~
+   It's up to transpilers to handle this as part of their translation process.
