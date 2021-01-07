@@ -26,7 +26,7 @@ This proposal is stable and with a variaty of implementations shipped.
 |QuickJS|[QuickJS](https://www.freelists.org/post/quickjs-devel/New-release,82) shipped full implementation|
 |Chrome| Full implementation [shipping](https://www.chromestatus.com/feature/6001727933251584) |
 |Firefox| [Firefox v75](https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Releases/75) shipped [`static` public fields](https://bugzilla.mozilla.org/show_bug.cgi?id=1535804) |
-|Safari|_In progress:_ In review in this [patch](https://bugs.webkit.org/show_bug.cgi?id=194095)|
+|Safari| Full implementation [shipping](https://webkit.org/blog/11364/release-notes-for-safari-technology-preview-117/) in Technology Preview 117 |
 
 ## Static public fields
 
