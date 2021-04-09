@@ -1,5 +1,7 @@
 # Static class features
 
+![Stage 3](https://badges.aleen42.com/src/tc39_4.svg)
+
 Champions: Shu-yu Guo, Daniel Ehrenberg
 
 Stage 3
