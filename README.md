@@ -2,7 +2,7 @@
 
 Champions: Shu-yu Guo, Daniel Ehrenberg
 
-Stage 3
+Stage 4
 
 This proposal adds three features to JavaScript classes, building on the previous [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals:
 - Static public fields
@@ -11,9 +11,9 @@ This proposal adds three features to JavaScript classes, building on the previou
 
 ## Current status
 
-This proposal is at Stage 3.
+This proposal is at Stage 4.
 
-This proposal was created to track the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals, namely static public fields, static private fields, and static private methods. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3. In the May 2018 TC39 meeting, this proposal was promoted to Stage 3.
+This proposal was created to track the "static" (i.e., of the constructor) aspects of the [class fields](http://github.com/tc39/proposal-class-fields) and [private methods](https://github.com/tc39/proposal-private-methods) proposals, namely static public fields, static private fields, and static private methods. In the November 2017 TC39 meeting, the static dimensions of these proposals were demoted to Stage 2, to be broken out into a separate proposal while the instance dimensions remain at Stage 3. In the May 2018 TC39 meeting, this proposal was promoted to Stage 3. In the April 2021 TC39 meeting, this proposal was promoted to Stage 4.
 
 Draft specification text is published at [https://tc39.github.io/proposal-static-class-features/].
 
